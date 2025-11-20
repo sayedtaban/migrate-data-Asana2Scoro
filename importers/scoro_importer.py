@@ -48,7 +48,7 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
             logger.info(f"Getting or creating company: {company_name}...")
             try:
                 company = scoro_client.get_or_create_company(company_name)
-                company_id = company.get('id') or company.get('company_id') or company.get('client_id')
+                company_id = company.get('id') or company.get('company_id') or company.get('client_id') or company.get('contact_id')
                 logger.info(f"✓ Company ready: {company.get('name', 'Unknown')} (ID: {company_id})")
             except Exception as e:
                 error_msg = f"Failed to get/create company '{company_name}': {e}"
@@ -64,7 +64,7 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                 logger.info(f"No explicit company name, using project name as company: {project_name}")
                 try:
                     company = scoro_client.get_or_create_company(project_name)
-                    company_id = company.get('id') or company.get('company_id') or company.get('client_id')
+                    company_id = company.get('id') or company.get('company_id') or company.get('client_id') or company.get('contact_id')
                     logger.info(f"✓ Company ready: {company.get('name', 'Unknown')} (ID: {company_id})")
                 except Exception as e:
                     logger.warning(f"Could not create company from project name: {e}")
@@ -88,7 +88,8 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                     company_id = (
                         company.get('id') or 
                         company.get('company_id') or 
-                        company.get('client_id')
+                        company.get('client_id') or
+                        company.get('contact_id')
                     )
                     if company_id:
                         project_data['company_id'] = company_id
@@ -99,7 +100,19 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                 project = scoro_client.create_project(project_data)
                 import_results['project'] = project
                 summary.add_success()
-                logger.info(f"✓ Project created successfully: {project.get('name', 'Unknown')}")
+                
+                # Extract project ID for logging and later use
+                project_id_for_log = (
+                    project.get('project_id') or 
+                    project.get('id') or
+                    project.get('projectId')
+                )
+                project_name = project.get('project_name') or project.get('name', 'Unknown')
+                logger.info(f"✓ Project created successfully: {project_name}")
+                if project_id_for_log:
+                    logger.debug(f"  Project ID: {project_id_for_log}")
+                else:
+                    logger.warning(f"  Project ID not found in response. Available keys: {list(project.keys())}")
             except Exception as e:
                 error_msg = f"Failed to create project: {e}"
                 logger.error(f"✗ {error_msg}")
@@ -111,9 +124,15 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
         # Create milestones (phases) - include them in project modification
         milestones_to_import = transformed_data.get('milestones', [])
         if milestones_to_import and import_results['project']:
-            project_id = import_results['project'].get('id')
+            # Extract project ID - try multiple possible field names (Scoro API may use different field names)
+            project_id = (
+                import_results['project'].get('project_id') or 
+                import_results['project'].get('id') or
+                import_results['project'].get('projectId')
+            )
             if project_id:
                 logger.info(f"Adding {len(milestones_to_import)} milestones (phases) to project in Scoro...")
+                logger.debug(f"  Using project ID: {project_id}")
                 try:
                     # Transform milestones to Scoro phase format
                     phases = []
@@ -154,11 +173,19 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                     summary.add_failure(error_msg)
             else:
                 logger.warning("Cannot add milestones: Project ID not available")
+                logger.debug(f"  Project response keys: {list(import_results['project'].keys()) if import_results['project'] else 'No project'}")
         elif milestones_to_import and not import_results['project']:
             logger.warning(f"Cannot create {len(milestones_to_import)} milestones: Project creation failed")
         
         # Create tasks with batch processing
-        project_id = import_results['project'].get('id') if import_results['project'] else None
+        # Extract project ID - try multiple possible field names (Scoro API may use different field names)
+        project_id = None
+        if import_results['project']:
+            project_id = (
+                import_results['project'].get('project_id') or 
+                import_results['project'].get('id') or
+                import_results['project'].get('projectId')
+            )
         tasks_to_import = transformed_data.get('tasks', [])
         
         if tasks_to_import:
@@ -181,14 +208,25 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                             task_data['project_id'] = project_id
                             logger.debug(f"    Linked to project ID: {project_id}")
                         
-                        # Remove fields that Scoro might not accept
+                        # Remove fields that Scoro might not accept (metadata and name-only fields)
+                        # Exclude: internal tracking fields, name-only fields (need ID resolution), 
+                        # and fields not in Scoro Tasks API reference
                         task_data_clean = {k: v for k, v in task_data.items() 
                                          if k not in ['asana_gid', 'asana_permalink', 'dependencies', 'num_subtasks', 
-                                                      'attachment_count', 'attachment_refs', 'followers']}
+                                                      'attachment_count', 'attachment_refs', 'followers',
+                                                      'owner_name', 'assigned_to_name', 'project_phase_name', 
+                                                      'project_name', 'company_name', 'tags', 'is_milestone']}
                         
                         # Map 'title' to 'event_name' (Scoro API requirement)
                         if 'title' in task_data_clean and 'event_name' not in task_data_clean:
                             task_data_clean['event_name'] = task_data_clean.pop('title')
+                        
+                        # TODO: Resolve user names to IDs
+                        # - owner_name -> owner_id (Integer)
+                        # - assigned_to_name -> related_users (Array of user IDs)
+                        # - project_phase_name -> project_phase_id (Integer)
+                        # - company_name -> company_id (Integer)
+                        # For now, these fields are removed. ID resolution needs to be implemented.
                         
                         task = scoro_client.create_task(task_data_clean)
                         import_results['tasks'].append(task)

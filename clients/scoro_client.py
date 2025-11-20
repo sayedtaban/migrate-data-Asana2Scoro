@@ -500,7 +500,8 @@ class ScoroClient:
             for company in companies:
                 name = company.get('name', '') or company.get('company_name', '')
                 if name and name.lower().strip() == company_name_lower:
-                    logger.info(f"Found existing company: {name} (ID: {company.get('id')})")
+                    company_id = company.get('id') or company.get('company_id') or company.get('client_id') or company.get('contact_id')
+                    logger.info(f"Found existing company: {name} (ID: {company_id})")
                     return company
             
             logger.debug(f"Company not found: {company_name}")
@@ -555,7 +556,7 @@ class ScoroClient:
                 company = result
             
             company_name = company.get('name', 'Unknown')
-            company_id = company.get('id', company.get('company_id'))
+            company_id = company.get('id') or company.get('company_id') or company.get('client_id') or company.get('contact_id')
             logger.info(f"Created/updated Scoro company: {company_name} (ID: {company_id})")
             return company
         except requests.exceptions.RequestException as e:

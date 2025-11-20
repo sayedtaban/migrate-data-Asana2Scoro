@@ -1,5 +1,15 @@
 """
 Main data transformation logic for converting Asana data to Scoro format
+
+Field names in this transformer match the Scoro API v2 format:
+- Tasks API fields: event_name, is_completed, is_personal, start_datetime, 
+  datetime_due, datetime_completed, duration_planned, duration_actual, 
+  activity_type, priority_id, description, company_id, project_id, 
+  project_phase_id, owner_id, related_users, status, etc.
+- Projects API fields: project_name, description, company_id, is_personal, 
+  is_private, date, deadline, duration, status, manager_id, phases, etc.
+
+Reference: Scoro API Reference.md
 """
 import re
 from datetime import datetime
@@ -75,36 +85,47 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                     logger.info(f"  Found company name from task custom field: {company_name}")
                     break
         
-        # Transform project with comprehensive fields
+        # Transform project with comprehensive fields matching Scoro API format
+        # Reference: Scoro API Reference.md - Projects API fields
         transformed_project = {
-            'name': project_name,
+            'project_name': project_name,  # Scoro API uses 'project_name'
         }
         
         # Add company name to project data for reference
         if company_name:
             transformed_project['company_name'] = company_name
         
-        # Add project metadata
+        # Add project metadata matching Scoro API format
         # Map Asana "Project Overview" (stored in 'notes' field) to Scoro project description/details field
         project_overview = project.get('overview') or project.get('notes') or project.get('description')
         if project_overview:
             transformed_project['description'] = re.sub(r'<[^>]+>', '', str(project_overview))
-        if project.get('created_at'):
-            transformed_project['created_at'] = project.get('created_at')
-        if project.get('modified_at'):
-            transformed_project['modified_at'] = project.get('modified_at')
+        
+        # Map dates to Scoro API format (date field for start, deadline for due)
+        if project.get('start_on') or project.get('created_at'):
+            start_date = project.get('start_on') or project.get('created_at')
+            if isinstance(start_date, str) and 'T' in start_date:
+                start_date = start_date.split('T')[0]
+            transformed_project['date'] = start_date  # Scoro API uses 'date' for project start/creation date
+        
         if project.get('due_date') or project.get('due_on'):
             due_date = project.get('due_date') or project.get('due_on')
             if isinstance(due_date, str) and 'T' in due_date:
                 due_date = due_date.split('T')[0]
-            transformed_project['due_date'] = due_date
-        if project.get('start_on'):
-            start_date = project.get('start_on')
-            if isinstance(start_date, str) and 'T' in start_date:
-                start_date = start_date.split('T')[0]
-            transformed_project['start_date'] = start_date
-        if project.get('completed'):
-            transformed_project['completed'] = project.get('completed')
+            transformed_project['deadline'] = due_date  # Scoro API uses 'deadline' not 'due_date'
+        
+        # Note: Scoro API doesn't have 'completed_date' field for projects
+        # Project completion is indicated by status field (e.g., 'completed')
+        
+        # Scoro project fields
+        transformed_project['is_personal'] = False  # Scoro API uses Boolean, default to False (not personal)
+        transformed_project['is_private'] = False  # Scoro API uses Boolean, default to False (not private)
+        
+        # Keep legacy fields for backward compatibility with importer
+        if project.get('created_at'):
+            transformed_project['created_at'] = project.get('created_at')
+        if project.get('modified_at'):
+            transformed_project['modified_at'] = project.get('modified_at')
         if project.get('archived'):
             transformed_project['archived'] = project.get('archived')
         
@@ -231,27 +252,27 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                 else:
                     assignee = str(assignee).strip()
             
-            due_date = task.get('due_on') or task.get('due_at')
-            if due_date:
-                if isinstance(due_date, str):
-                    # Format date for Scoro (YYYY-MM-DD)
+            # Get due date - Scoro API uses datetime_due (ISO8601 format)
+            datetime_due = task.get('due_on') or task.get('due_at')
+            if datetime_due:
+                if isinstance(datetime_due, str):
                     try:
-                        if 'T' in due_date:
-                            due_date = due_date.split('T')[0]
-                        else:
-                            due_date = due_date.split()[0] if due_date.split() else due_date
+                        # Keep full datetime format for Scoro API (ISO8601)
+                        if 'T' not in datetime_due:
+                            # If only date, add time component
+                            datetime_due = f"{datetime_due}T00:00:00"
                     except Exception as e:
-                        logger.debug(f"    Could not parse due_date: {due_date}, error: {e}")
-                        due_date = None
+                        logger.debug(f"    Could not parse datetime_due: {datetime_due}, error: {e}")
+                        datetime_due = None
                 else:
                     # If it's not a string, try to convert or set to None
-                    due_date = None
+                    datetime_due = None
             else:
-                due_date = None
+                datetime_due = None
             
             # July 1 rule: exclude tasks created before cutoff if no assignee or due date
             if created_date < CUTOFF_DATE:
-                if not assignee or not due_date:
+                if not assignee or not datetime_due:
                     tasks_excluded += 1
                     logger.debug(f"    ⚠ Excluded task (July 1 rule): {task_name}")
                     continue
@@ -291,43 +312,61 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             responsible = validate_user(pm_name, default_to_tom=True)
             assigned_to = validate_user(assignee, default_to_tom=False)
             
+            # Get estimated/actual time (if available in custom fields)
+            # NOTE: Must extract this BEFORE setting completion status because Scoro requires
+            # completed tasks to have time entries
+            estimated_time = extract_custom_field_value(task, 'Estimated time') or extract_custom_field_value(task, 'Estimated Time')
+            actual_time = extract_custom_field_value(task, 'Actual time') or extract_custom_field_value(task, 'Actual Time')
+            
             # Get completion status
+            # IMPORTANT: Scoro requires that tasks marked as done must have time entries.
+            # If a task was completed in Asana but has no actual_time, we cannot mark it as completed.
             completed = task.get('completed', False)
             completed_at = task.get('completed_at')
-            if completed and completed_at:
-                status = 'Completed'
-                done = True
-                completed_date = completed_at
-                if isinstance(completed_date, str):
-                    try:
-                        if 'T' in completed_date:
-                            completed_date = completed_date.split('T')[0]
-                        else:
-                            completed_date = completed_date.split()[0] if completed_date.split() else completed_date
-                    except Exception as e:
-                        logger.debug(f"    Could not parse completed_date: {completed_date}, error: {e}")
-                        completed_date = None
-            else:
-                status = 'Planned'
-                done = False
-                completed_date = None
+            has_actual_time = actual_time and str(actual_time).strip()
             
-            # Get start date
-            start_date = task.get('start_on') or task.get('start_at')
-            if start_date:
-                if isinstance(start_date, str):
+            if completed and completed_at and has_actual_time:
+                # Task is completed AND has time entries - safe to mark as completed
+                status = 'task_status4'  # Scoro API uses task_status1-4, using task_status4 for completed
+                is_completed = True  # Scoro API uses Boolean
+                datetime_completed = completed_at
+                if isinstance(datetime_completed, str):
                     try:
-                        if 'T' in start_date:
-                            start_date = start_date.split('T')[0]
-                        else:
-                            start_date = start_date.split()[0] if start_date.split() else start_date
+                        # Keep full datetime format for Scoro API (ISO8601)
+                        if 'T' not in datetime_completed:
+                            # If only date, add time component
+                            datetime_completed = f"{datetime_completed}T00:00:00"
                     except Exception as e:
-                        logger.debug(f"    Could not parse start_date: {start_date}, error: {e}")
-                        start_date = None
-                else:
-                    start_date = None
+                        logger.debug(f"    Could not parse datetime_completed: {datetime_completed}, error: {e}")
+                        datetime_completed = None
+            elif completed and completed_at and not has_actual_time:
+                # Task was completed in Asana but has no time entries
+                # Scoro won't accept it as completed, so set to in-progress status instead
+                status = 'task_status2'  # Use task_status2 (in-progress) instead of completed
+                is_completed = False  # Don't mark as completed
+                datetime_completed = None  # Don't set completion datetime
+                logger.debug(f"    ⚠ Task was completed in Asana but has no time entries - setting to in-progress status instead")
             else:
-                start_date = None
+                status = 'task_status1'  # Scoro API uses task_status1-4, using task_status1 for planned/in-progress
+                is_completed = False  # Scoro API uses Boolean
+                datetime_completed = None
+            
+            # Get start date - Scoro API uses start_datetime (ISO8601 format)
+            start_datetime = task.get('start_on') or task.get('start_at')
+            if start_datetime:
+                if isinstance(start_datetime, str):
+                    try:
+                        # Keep full datetime format for Scoro API (ISO8601)
+                        if 'T' not in start_datetime:
+                            # If only date, add time component
+                            start_datetime = f"{start_datetime}T00:00:00"
+                    except Exception as e:
+                        logger.debug(f"    Could not parse start_datetime: {start_datetime}, error: {e}")
+                        start_datetime = None
+                else:
+                    start_datetime = None
+            else:
+                start_datetime = None
             
             # Map Asana task overview/description (stored in 'notes' or 'html_notes' field) to Scoro task "Description" field
             # At task level: Overview goes to "Description" field
@@ -352,10 +391,6 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                     else:
                         description = f"--- Comments ---\n{comments_text}"
             
-            # Get estimated/actual time (if available in custom fields)
-            estimated_time = extract_custom_field_value(task, 'Estimated time') or extract_custom_field_value(task, 'Estimated Time')
-            actual_time = extract_custom_field_value(task, 'Actual time') or extract_custom_field_value(task, 'Actual Time')
-            
             # Get company name (from custom field or project)
             company = extract_custom_field_value(task, 'C-Name') or extract_custom_field_value(task, 'Company Name')
             if not company:
@@ -364,8 +399,18 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             # Extract tags
             tags = extract_tags(task)
             
-            # Extract priority
-            priority = extract_priority(task, title)
+            # Extract priority and convert to priority_id
+            # Scoro API: priority_id Integer - 1=high, 2=normal, 3=low
+            priority_str = extract_priority(task, title)
+            priority_id = None
+            if priority_str:
+                priority_lower = priority_str.lower()
+                if 'high' in priority_lower:
+                    priority_id = 1
+                elif 'low' in priority_lower:
+                    priority_id = 3
+                else:
+                    priority_id = 2  # Default to normal/medium
             
             # Get dependencies (for reference, may need to be handled separately in Scoro)
             dependencies = task.get('dependencies', [])
@@ -417,43 +462,56 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             # Get permalink for reference
             permalink = task.get('permalink_url', '')
             
-            # Build comprehensive Scoro task data structure
+            # Build comprehensive Scoro task data structure matching Scoro API format
+            # Reference: Scoro API Reference.md - Tasks API fields
             transformed_task = {
-                'title': title,
-                'done': done,
-                'priority': priority,
-                'personal': False,
+                'title': title,  # Will be mapped to 'event_name' in importer
+                'is_completed': is_completed,  # Scoro API uses Boolean 'is_completed'
+                'is_personal': False,  # Scoro API uses Boolean 'is_personal', default to False (not personal)
             }
             
-            # Add optional fields only if they have values
+            # Add optional fields only if they have values, matching Scoro API field names
             if description:
                 transformed_task['description'] = description
-            if start_date:
-                transformed_task['start_datetime'] = start_date
-            if due_date:
-                transformed_task['due_date'] = due_date
+            if start_datetime:
+                transformed_task['start_datetime'] = start_datetime  # Scoro API uses 'start_datetime' (ISO8601)
+            if datetime_due:
+                transformed_task['datetime_due'] = datetime_due  # Scoro API uses 'datetime_due' (ISO8601)
             if estimated_time:
-                transformed_task['planned_duration'] = estimated_time
+                transformed_task['duration_planned'] = estimated_time  # Scoro API uses 'duration_planned' (Time HH:ii:ss)
             if actual_time:
-                transformed_task['done_duration'] = actual_time
+                transformed_task['duration_actual'] = actual_time  # Scoro API uses 'duration_actual' (Time HH:ii:ss)
             if activity_type:
-                transformed_task['activity_type'] = activity_type
+                transformed_task['activity_type'] = activity_type  # Scoro API uses 'activity_type' (String)
             if status:
-                transformed_task['status'] = status
-            if completed_date:
-                transformed_task['completed_date'] = completed_date
+                transformed_task['status'] = status  # Scoro API uses 'status' (task_status1-4)
+            if datetime_completed:
+                transformed_task['datetime_completed'] = datetime_completed  # Scoro API uses 'datetime_completed' (ISO8601)
+            if priority_id:
+                transformed_task['priority_id'] = priority_id  # Scoro API uses 'priority_id' (Integer: 1=high, 2=normal, 3=low)
             if responsible:
-                transformed_task['responsible'] = responsible
+                transformed_task['owner_name'] = responsible  # Store name, importer will resolve to owner_id
             if assigned_to:
-                transformed_task['assigned_to'] = assigned_to
+                transformed_task['assigned_to_name'] = assigned_to  # Store name, importer will resolve to related_users array
             if project_name:
-                transformed_task['project'] = project_name
+                transformed_task['project_name'] = project_name  # Store name, importer will resolve to project_id
             if project_phase:
-                transformed_task['project_phase'] = project_phase
+                transformed_task['project_phase_name'] = project_phase  # Store name, importer will resolve to project_phase_id
             if company:
-                transformed_task['company'] = company
+                transformed_task['company_name'] = company  # Store name, importer will resolve to company_id
+            
+            # Additional Scoro API fields that may be populated later or left empty
+            # These fields are available in Scoro API but may not be available from Asana:
+            # activity_id (Integer), quote_line_id (Integer), invoice_id (Integer),
+            # order_id (Integer), purchase_order_id (Integer), rent_order_id (Integer),
+            # bill_id (Integer), billable_hours (Time), billable_time_type (String),
+            # created_user (Integer), modified_user (Integer), owner_email (String),
+            # custom_fields (Object), tags (Array), permissions (Array)
+            
+            # Metadata fields for internal use (not sent to API but useful for tracking)
+            # These fields are excluded in the importer before sending to Scoro API
             if tags:
-                transformed_task['tags'] = tags  # Scoro may support tags
+                transformed_task['tags'] = tags  # Stored for reference, excluded from API request
             if dependency_gids:
                 transformed_task['dependencies'] = dependency_gids  # May need special handling
             if num_subtasks > 0:

@@ -169,6 +169,41 @@ Where `#companyname#` is your Scoro account's subdomain.
 - Deleted projects or phases can be included in responses by setting `"include_deleted": "1"`.
 
 ---
+### Projects
+Name : Type : Description
+project_id : Integer : Project ID
+no : Integer : Project number.
+project_name : String : Project name.
+description : String : Project description.
+company_id : Integer : Related company ID.
+company_name : String : Related company name. Only available for user based API
+is_personal : Boolean : If project is personal or business related.
+is_private : Boolean : If project is public or only for project members
+color : String : Project color identifier. Format is in hex "#ffffff"
+status : String : Project status. Possible values: pending, inprogress, cancelled, completed, future, additional1, additional2, additional3, additional4
+status_name : String : Status name. Available in view request.
+manager_id : Integer : Project manager ID.
+manager_email : String : Project manager email.
+date : Date (YYYY-mm-dd) : Project start date.
+deadline : Date (YYYY-mm-dd) : Project deadline.
+duration : Time (HH:ii:ss) : Project estimated duration.
+phases : array : Project phases. Phases will be only filled for view requests.
+account_id : String : Related account that created the project.
+budget_type : String : Project budget type. Possible values when creating a new project: quote, simple. Cannot be modified.
+project_type : String : Project type. Possible values: regular, retainer, internal. Supports filtering. Cannot be modified.
+retainer_id : int : Retainer Id. Given if project is of type "retainer". Cannot be modified.
+modified_date : Datetime (YYYY-mm-dd HH:ii:ss) : The date when project was last modified.
+deleted_date : Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP) : The date when project was deleted.
+tags : Array : Array of project tags. Not used on list requests.
+permissions : Array : Object user permissions. Used only for user based API
+project_users : Array : Project related users. It is used only for modify and view requests.
+project_customer_portal_users : Array : Project related customer portal users. It is used only for view requests.
+project_accounts : Array : Project related accounts. Project is shared between those accounts.
+stripDescription : Boolean : Deprecated Can use this argument on view requests. Strips HTML from project description field. Default value for this is true.
+is_role_based : Boolean : If project is role based or service based. Available if roles are turned on.
+local_price_list_id : Integer : Local price list ID. Available for role based projects.
+custom_fields : Object : Custom fields. Only filled on view requests.
+is_deleted : Boolean : Is deleted. Use 'include_deleted = 1' in request object to get deleted objects to response as well.
 
 ### Summary
 
@@ -296,3 +331,61 @@ curl -X POST "https://#companyname#.scoro.com/api/v2/tasks" \
 ### Summary
 
 The Scoro API’s **tasks module** provides versatile endpoints for listing, creating, updating, and completing tasks, including support for subtasks, comments, bookmarks, and filtering. Tasks can be managed securely with authentication tokens and handle large datasets efficiently via pagination and filtering. Proper error handling for authorization and rate limits is essential to maintain smooth integration. This makes the tasks API suitable for detailed task management automation and integration with your existing workflows or applications.
+
+
+### Tasks
+Name : Type : Description
+is_completed : Boolean : Is completed.
+datetime_completed : Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP) : Tasks completion time. Has value if task is completed.
+assigned_to : Integer : Deprecated User ID of the user performing the assigned task.
+related_users : Array : Array of user IDs that the task is assigned to. If empty array is submitted then task is set as unassigned.
+related_users_emails : Array : Array of user emails that the task is assigned to.
+duration_actual : Time (HH:ii:ss) : Tasks actual duration. This field is read only - it is calculated based on task time entries.
+start_datetime : Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP) : Tasks start date.
+datetime_due : Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP) : Tasks due date.
+status : String : Possible values: task_status1, task_status2, task_status3, task_status4.
+status_name : String : Status name. Available in view request.
+time_entries : Array : Array of tasks' time entries. Populated only on view requests.
+sortorder : Integer : Task sort order in list.
+quote_line_id : Integer : Related quote line ID.
+priority_id : Integer : Priority of the task. Possible values: 1 -> high, 2 -> normal, 3 -> low.
+ete_id : Integer : Task time entry ID. Value will be filled only when task time entry is fetched separately in the user based list request, else its value will be 0.
+parent_id : Integer|null : Task's parent task ID, filterable, cannot be modified. Field is usable only when "Subtasks" feature is enabled. Subtask inherits the following parent's values which cannot be modified for subtask: project_id, project_phase_id, person_id, company_id, quote_id, quote_line_id, and is_personal. Use 'include_subtasks = 1' in request object to get subtask objects to response as well. By default, subtasks are not included.
+subtask_ids : array : Task's subtasks' IDs given as an array. Not filterable. Field is usable only when "Subtasks" feature is enabled. Use 'include_subtasks = 1' in request object to get subtask objects to response as well. By default, subtasks are not included, only subtask_ids will be given.
+activity_id : Integer : Activity ID
+activity_type : String : Activity type. Not filterable.
+event_id : Integer : Event ID
+event_name : String : Event name.
+description : String : Event description.
+is_personal : Boolean : If event is personal or work related.
+project_id : Integer : Related project ID.
+project_phase_id : Integer : Related project phase ID. If project phase ID is in input, then related project ID is automatically populated.
+project_name : String : Related project name. Used only for user based API.
+company_id : Integer : Related company ID.
+company_name : String : Related company name
+person_id : Integer : Related person ID.
+person_name : String : Related person name. Used only for user based API.
+invoice_id : Integer : Related invoice ID.
+order_id : Integer : Related order ID.
+quote_id : Integer : Related quote ID.
+purchase_order_id : Integer : Related purchase order ID.
+rent_order_id : Integer : Related rental order ID.
+bill_id : Integer : Related bill ID.
+duration_planned : Time (HH:ii:ss) : Events or tasks planned duration. Rounded to the nearest minute.
+billable_hours : Time (HH:ii:ss) : Events billable duration. Rounded to nearest minute.
+billable_time_type : String : Billable time type. Defines the rules for billable_hours field. Optional (if field not provided then 'custom' is used).
+Possible values: billable, non_billable, custom.
+
+billable: billable_hours will be set same as duration_planned.
+non_billable: billable_hours will be set to 0.
+custom: billable_hours will be used as defined.
+owner_id : Integer : User ID of the user that is responsible for the event.
+created_user : Integer : User ID of the user who created the event.
+modified_user : Integer : User ID of the user who modified the event.
+owner_email : String : User email of the user that is responsible for the event.
+modified_date : Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP) : The date when event was last modified.
+created_date : Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP) : Created date. Cannot be modified through API.
+permissions : Array : Object user permissions. Used only for user based API
+custom_fields : Object : Custom fields. Only filled on view requests.
+is_deleted : Boolean : Is deleted. Use 'include_deleted = 1' in request object to get deleted objects to response as well.
+deleted_date : Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP) : The date when object was deleted.
