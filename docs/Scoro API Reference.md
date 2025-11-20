@@ -471,3 +471,142 @@ Example response body:
         }
     ]
 }
+
+
+
+### Comments
+This API endpoint supports requests authenticated by either user_token or apiKey.
+
+Name : Type : Description
+comment_id : String : Comment id
+parent_id : Integer : Parent (comment) id
+comment : String : Comment content
+user_id : Integer : Comment owner id. The parameter is mandatory in case of comment creation with API Key.
+modified_date : Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP) : Modified datetime
+permissions : Array : Object user permissions. Used only for user based API list request
+
+Available actions are
+list
+Request URL:
+https://#companyname#.scoro.com/api/v2/comments/list
+Description:
+Fields "module" and "object_id" are mandatory. Sample list request for module "tasks" with id "123" and filtering by modified date. Including "html" parameter with value 0 to request will strip html tags from comment content.
+Example request body:
+
+{
+    "user_token": "USER_API_token",
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "request": {
+        "module": "tasks",
+        "object_id": "123"
+    },
+    "filter": {
+        "modified_date": {
+            "from_date": "2013-02-01",
+            "to_date": "2013-02-28"
+        }
+    }
+}
+
+Example response body:
+
+{
+    "status": "OK",
+    "statusCode": "200",
+    "messages": null,
+    "data": [
+        {
+            "comment_id": 301,
+            "parent_id": 0,
+            "comment": "Example comment",
+            "user_id": 1,
+            "modified_date": "2020-12-29T09:48:22+02:00",
+            "permissions": {
+                "view": 1,
+                "modify": 1,
+                "delete": 1
+            }
+        },
+        {
+            "comment_id": 302,
+            "parent_id": 0,
+            "comment": "Example comment 2",
+            "user_id": 1,
+            "modified_date": "2020-12-29T09:48:18+02:00",
+            "permissions": {
+                "view": 1,
+                "modify": 1,
+                "delete": 1
+            }
+        }
+    ]
+}
+
+modify
+Request URL:
+https://#companyname#.scoro.com/api/v2/comments/modify/(#id)
+Description:
+Modify existing comments or create a new one with user token. Adding "parent_id" parameter will create a response to the existing comment. Sample add/modify the request for module "tasks" with id "123".
+Example request body:
+
+{
+    "user_token": "USER_API_token",
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "request": {
+        "module": "tasks",
+        "object_id": "123",
+        "comment": "Example"
+    }
+}
+
+Example response body:
+
+{
+    "status": "OK",
+    "statusCode": "200",
+    "messages": null,
+    "data": {
+        "comment_id": 1,
+        "parent_id": 0,
+        "comment": "Example",
+        "user_id": 1,
+        "modified_date": "2020-12-29T11:16:39+02:00",
+        "permissions": null,
+        "custom_fields": null
+    }
+}
+
+Description:
+Modify existing comments or create a new one with API key. "user_id" parameter is mandatory. Adding "parent_id" parameter will create a response to the existing comment. Sample add/modify the request for module "tasks" with id "123".
+Example request body:
+
+{
+    "apiKey": "API_hash",
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "request": {
+        "module": "tasks",
+        "object_id": "123",
+        "user_id": 1,
+        "comment": "Example"
+    }
+}
+
+Example response body:
+
+{
+    "status": "OK",
+    "statusCode": "200",
+    "messages": null,
+    "data": {
+        "comment_id": 1,
+        "parent_id": 0,
+        "comment": "Example",
+        "user_id": 1,
+        "modified_date": "2020-12-29T11:16:39+02:00",
+        "permissions": null,
+        "custom_fields": null
+    }
+}

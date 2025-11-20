@@ -21,8 +21,7 @@ from utils import logger
 from transformers.field_extractors import (
     extract_custom_field_value,
     extract_tags,
-    extract_priority,
-    format_comments_for_description
+    extract_priority
 )
 from transformers.mappers import (
     smart_map_phase,
@@ -413,15 +412,9 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             else:
                 description = None
             
-            # Append comments/stories to description if available
+            # Extract stories/comments for separate processing (not mixed with description)
+            # Comments will be created separately via Scoro Comments API
             stories = task.get('stories', [])
-            if stories:
-                comments_text = format_comments_for_description(stories)
-                if comments_text:
-                    if description:
-                        description = f"{description}\n\n--- Comments ---\n{comments_text}"
-                    else:
-                        description = f"--- Comments ---\n{comments_text}"
             
             # Get company name (from custom field or project)
             company = extract_custom_field_value(task, 'C-Name') or extract_custom_field_value(task, 'Company Name')
@@ -564,6 +557,10 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             # Store Asana GID for reference and deduplication
             if task_gid:
                 transformed_task['asana_gid'] = task_gid
+            
+            # Store stories/comments for separate comment creation via Scoro Comments API
+            if stories:
+                transformed_task['stories'] = stories
             
             transformed_data['tasks'].append(transformed_task)
             tasks_written += 1

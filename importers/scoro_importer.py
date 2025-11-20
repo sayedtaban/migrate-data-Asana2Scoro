@@ -1,6 +1,7 @@
 """
 Import functionality for importing transformed data into Scoro
 """
+import re
 from typing import Dict
 
 from clients.scoro_client import ScoroClient
@@ -228,6 +229,9 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                     global_idx = (batch_idx - 1) * batch_size + idx
                     logger.info(f"  [{global_idx}/{len(tasks_to_import)}] Creating task: {task_name}")
                     try:
+                        # Extract stories/comments before cleaning task_data
+                        stories = task_data.get('stories', [])
+                        
                         # Link task to project if project_id is available
                         if project_id:
                             task_data['project_id'] = project_id
@@ -236,11 +240,12 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                         # Remove fields that Scoro might not accept (metadata and name-only fields)
                         # Exclude: internal tracking fields, name-only fields (need ID resolution), 
                         # and fields not in Scoro Tasks API reference
+                        # Note: 'stories' is excluded from task creation but will be processed separately
                         task_data_clean = {k: v for k, v in task_data.items() 
                                          if k not in ['asana_gid', 'asana_permalink', 'dependencies', 'num_subtasks', 
                                                       'attachment_count', 'attachment_refs', 'followers',
                                                       'owner_name', 'assigned_to_name', 'project_phase_name', 
-                                                      'project_name', 'company_name', 'tags', 'is_milestone']}
+                                                      'project_name', 'company_name', 'tags', 'is_milestone', 'stories']}
                         
                         # Map 'title' to 'event_name' (Scoro API requirement)
                         if 'title' in task_data_clean and 'event_name' not in task_data_clean:
@@ -253,10 +258,111 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                         # - company_name -> company_id (Integer)
                         # For now, these fields are removed. ID resolution needs to be implemented.
                         
+                        # Create the task
                         task = scoro_client.create_task(task_data_clean)
                         import_results['tasks'].append(task)
                         summary.add_success()
                         logger.info(f"    ✓ Task created: {task_name}")
+                        
+                        # Extract task ID from response (try multiple possible field names)
+                        # Scoro API may return task ID in different fields
+                        scoro_task_id = None
+                        for field_name in ['event_id', 'task_id', 'id', 'eventId', 'taskId']:
+                            task_id_value = task.get(field_name)
+                            if task_id_value is not None:
+                                # Convert to int if it's a valid number
+                                try:
+                                    task_id_int = int(task_id_value)
+                                    if task_id_int > 0:  # Valid task IDs should be positive
+                                        scoro_task_id = task_id_int
+                                        break
+                                except (ValueError, TypeError):
+                                    continue
+                        
+                        # Create comments separately via Scoro Comments API
+                        if stories and scoro_task_id is not None:
+                            # Filter only comment-type stories
+                            comment_stories = [s for s in stories if isinstance(s, dict) and s.get('type') == 'comment']
+                            
+                            if comment_stories:
+                                logger.info(f"    Creating {len(comment_stories)} comments for task...")
+                                comments_created = 0
+                                comments_failed = 0
+                                
+                                for story in comment_stories:
+                                    try:
+                                        comment_text = story.get('text', '').strip()
+                                        if not comment_text:
+                                            continue
+                                        
+                                        # Clean HTML from comment text if present
+                                        comment_text = re.sub(r'<[^>]+>', '', comment_text).strip()
+                                        if not comment_text:
+                                            continue
+                                        
+                                        # Extract author information
+                                        created_by = story.get('created_by', {})
+                                        author_name = None
+                                        if isinstance(created_by, dict):
+                                            author_name = created_by.get('name', '')
+                                        elif hasattr(created_by, 'name'):
+                                            author_name = created_by.name
+                                        
+                                        # Resolve user_id from author name
+                                        user_id = None
+                                        if author_name:
+                                            try:
+                                                user = scoro_client.find_user_by_name(author_name)
+                                                if user:
+                                                    user_id = user.get('id')
+                                                    if user_id is not None:
+                                                        logger.debug(f"      Resolved comment author '{author_name}' to user_id: {user_id}")
+                                            except Exception as e:
+                                                logger.debug(f"      Could not resolve user '{author_name}': {e}")
+                                        
+                                        # If user_id not found, try to find a default user (Tom Sanpakit)
+                                        if user_id is None:
+                                            try:
+                                                default_user = scoro_client.find_user_by_name('Tom Sanpakit')
+                                                if default_user:
+                                                    user_id = default_user.get('id')
+                                                    if user_id is not None:
+                                                        logger.debug(f"      Using default user (Tom Sanpakit) for comment, user_id: {user_id}")
+                                            except Exception as e:
+                                                logger.debug(f"      Could not find default user: {e}")
+                                        
+                                        # Skip comment if no user_id available (API requires user_id with apiKey)
+                                        # Also ensure user_id is a valid positive integer
+                                        if user_id is None or not isinstance(user_id, int) or user_id <= 0:
+                                            logger.warning(f"      ⚠ Skipping comment: Invalid user_id ({user_id}) for author '{author_name or 'Unknown'}'")
+                                            comments_failed += 1
+                                            continue
+                                        
+                                        # Create comment via Scoro Comments API
+                                        # Module is "tasks", object_id is the task ID
+                                        scoro_client.create_comment(
+                                            module='tasks',
+                                            object_id=scoro_task_id,
+                                            comment_text=comment_text,
+                                            user_id=user_id
+                                        )
+                                        comments_created += 1
+                                        logger.debug(f"      ✓ Comment created by {author_name}")
+                                        
+                                    except Exception as e:
+                                        comments_failed += 1
+                                        logger.warning(f"      ⚠ Failed to create comment: {e}")
+                                        # Don't fail the entire task if comment creation fails
+                                
+                                if comments_created > 0:
+                                    logger.info(f"    ✓ Created {comments_created} comments for task")
+                                if comments_failed > 0:
+                                    logger.warning(f"    ⚠ Failed to create {comments_failed} comments for task")
+                            elif stories:
+                                logger.debug(f"    No comment-type stories found (found {len(stories)} total stories)")
+                        elif stories and not scoro_task_id:
+                            logger.warning(f"    ⚠ Cannot create comments: Task ID not available in response")
+                            logger.debug(f"    Task response keys: {list(task.keys())}")
                     except Exception as e:
                         error_msg = f"Failed to create task '{task_name}': {e}"
                         logger.error(f"    ✗ {error_msg}")

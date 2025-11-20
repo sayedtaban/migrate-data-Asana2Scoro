@@ -714,6 +714,76 @@ class ScoroClient:
     
     @retry_with_backoff()
     @rate_limit
+    def create_comment(self, module: str, object_id: int, comment_text: str, user_id: Optional[int] = None, parent_id: Optional[int] = None, comment_id: Optional[int] = None) -> Dict:
+        """
+        Create or modify a comment in Scoro
+        
+        Args:
+            module: Module name (e.g., "tasks", "projects")
+            object_id: ID of the object to comment on (e.g., task ID)
+            comment_text: Comment content
+            user_id: User ID of the comment owner (mandatory when using apiKey)
+            parent_id: Optional parent comment ID for replies
+            comment_id: Optional comment ID for updating existing comment
+        
+        Returns:
+            Created or updated comment dictionary
+        """
+        try:
+            # Build request data per Scoro Comments API format
+            request_data = {
+                'module': module,
+                'object_id': str(object_id),  # API expects string for object_id
+                'comment': comment_text
+            }
+            
+            # user_id is mandatory when using apiKey
+            if user_id is None:
+                raise ValueError("user_id is mandatory when using apiKey authentication")
+            request_data['user_id'] = user_id
+            
+            # Add parent_id for replies
+            if parent_id:
+                request_data['parent_id'] = parent_id
+            
+            # Build request body per Scoro API v2 format
+            request_body = self._build_request_body(request_data)
+            
+            # Use modify endpoint - with ID for updates, without for creates
+            if comment_id:
+                endpoint = f'comments/modify/{comment_id}'
+            else:
+                endpoint = 'comments/modify'
+            
+            response = requests.post(
+                f'{self.base_url}{endpoint}',
+                headers=self.headers,
+                json=request_body
+            )
+            response.raise_for_status()
+            result = response.json()
+            
+            # Handle response structure
+            if isinstance(result, dict):
+                if result.get('status') == 'ERROR':
+                    error_msg = result.get('messages', {}).get('error', ['Unknown error'])
+                    raise ValueError(f"Scoro API error: {error_msg}")
+                # Response may have data key or be the comment directly
+                comment = result.get('data', result)
+            else:
+                comment = result
+            
+            comment_id_returned = comment.get('comment_id') or comment.get('id')
+            logger.debug(f"Created/updated Scoro comment (ID: {comment_id_returned}) on {module} {object_id}")
+            return comment
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error creating/updating Scoro comment: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response: {e.response.text}")
+            raise
+    
+    @retry_with_backoff()
+    @rate_limit
     def find_user_by_name(self, user_name: str) -> Optional[Dict]:
         """
         Find a user by name in Scoro
