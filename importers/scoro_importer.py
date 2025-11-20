@@ -2,16 +2,16 @@
 Import functionality for importing transformed data into Scoro
 """
 import re
-from typing import Dict
+from typing import Dict, Optional
 
 from clients.scoro_client import ScoroClient
+from clients.asana_client import AsanaClient
 from models import MigrationSummary
 from utils import logger, process_batch
 from config import DEFAULT_BATCH_SIZE
 
-
 def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: MigrationSummary, 
-                     batch_size: int = DEFAULT_BATCH_SIZE) -> Dict:
+                     batch_size: int = DEFAULT_BATCH_SIZE, asana_client: Optional[AsanaClient] = None) -> Dict:
     """
     Import transformed data into Scoro with batch processing support
     
@@ -20,6 +20,7 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
         transformed_data: Transformed data dictionary
         summary: Migration summary tracker
         batch_size: Number of items to process in each batch
+        asana_client: Optional AsanaClient instance for fetching user details by GID
     
     Returns:
         Dictionary containing import results
@@ -384,6 +385,18 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                         author_name = None
                                         if isinstance(created_by, dict):
                                             author_name = created_by.get('name', '')
+                                            # If name is not available but gid is, fetch user details from Asana
+                                            if not author_name and asana_client is not None:
+                                                user_gid = created_by.get('gid')
+                                                if user_gid:
+                                                    try:
+                                                        user_details = asana_client.get_user_details(str(user_gid))
+                                                        if user_details:
+                                                            author_name = user_details.get('name', '')
+                                                            if author_name:
+                                                                logger.debug(f"      Fetched author name '{author_name}' from Asana for user GID: {user_gid}")
+                                                    except Exception as e:
+                                                        logger.debug(f"      Could not fetch user details for GID {user_gid}: {e}")
                                         elif hasattr(created_by, 'name'):
                                             author_name = created_by.name
                                         

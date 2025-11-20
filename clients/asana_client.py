@@ -42,6 +42,7 @@ class AsanaClient:
         self.projects_api = asana.ProjectsApi(self.api_client)
         self.tasks_api = asana.TasksApi(self.api_client)
         self.sections_api = asana.SectionsApi(self.api_client)
+        self.users_api = asana.UsersApi(self.api_client)
         
         logger.info("Asana client initialized")
     
@@ -477,4 +478,36 @@ class AsanaClient:
         except Exception as e:
             logger.warning(f"Error retrieving milestones for project {project_gid}: {e}")
             return []
+    
+    @retry_with_backoff()
+    @rate_limit
+    def get_user_details(self, user_gid: str) -> Optional[Dict]:
+        """
+        Get detailed information about a user from their GID
+        
+        Args:
+            user_gid: User GID
+        
+        Returns:
+            User dictionary with name, email, etc., or None if not found
+        """
+        try:
+            opts = {
+                'opt_fields': 'gid,name,email'
+            }
+            user = self.users_api.get_user(user_gid, opts)
+            user_dict = user.to_dict() if hasattr(user, 'to_dict') else dict(user)
+            logger.debug(f"Retrieved user details for GID {user_gid}: {user_dict.get('name', 'Unknown')}")
+            return user_dict
+        except ApiException as e:
+            status = e.status if hasattr(e, 'status') else 'Unknown'
+            if status == 401:
+                error_msg = "Authentication failed. Please check your ASANA_ACCESS_TOKEN."
+                logger.error(error_msg)
+                raise ValueError(error_msg) from e
+            logger.warning(f"Could not retrieve user details for GID {user_gid} (Status {status}): {e}")
+            return None
+        except Exception as e:
+            logger.warning(f"Error retrieving user details for GID {user_gid}: {e}")
+            return None
 

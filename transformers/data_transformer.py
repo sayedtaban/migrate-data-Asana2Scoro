@@ -270,13 +270,28 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                 created_date = datetime(2020, 1, 1)
             
             # July 1 rule: exclude tasks created before cutoff if no assignee or due date
+            # Extract assignee information - prefer name from users map if available
             assignee = None
+            assignee_gid = None
             assignee_obj = task.get('assignee')
             if assignee_obj:
+                # Get GID first
                 if isinstance(assignee_obj, dict):
+                    assignee_gid = assignee_obj.get('gid')
                     assignee = assignee_obj.get('name', '')
-                elif hasattr(assignee_obj, 'name'):
-                    assignee = assignee_obj.name
+                elif hasattr(assignee_obj, 'gid'):
+                    assignee_gid = assignee_obj.gid
+                    assignee = assignee_obj.name if hasattr(assignee_obj, 'name') else None
+                else:
+                    assignee = str(assignee_obj) if assignee_obj else None
+                
+                # If we have users map, try to get name from there (more reliable)
+                users_map = asana_data.get('users', {})
+                if assignee_gid and assignee_gid in users_map:
+                    user_details = users_map[assignee_gid]
+                    assignee = user_details.get('name', assignee)
+                    logger.debug(f"    Using user name from users map: {assignee} (GID: {assignee_gid})")
+                
                 # Normalize empty strings to None
                 if not assignee or not str(assignee).strip():
                     assignee = None
@@ -340,8 +355,19 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             project_phase = smart_map_phase(title, activity_type, section)
             
             # Map users
+            # Project owner (responsible) comes from PM Name custom field
             responsible = validate_user(pm_name, default_to_tom=True)
+            
+            # Task assigned_to comes from task assignee - should be different from project owner
             assigned_to = validate_user(assignee, default_to_tom=False)
+            
+            # Ensure project owner and task assignee are different
+            # If they're the same, it means the task assignee should be used for related_users
+            # and project owner should remain as owner_id
+            if responsible and assigned_to and responsible == assigned_to:
+                # They're the same - this is OK, but log it for visibility
+                logger.debug(f"    Note: Project owner and task assignee are the same: {responsible}")
+                # Keep both as-is - owner_id will be responsible, related_users will include assigned_to
             
             # Get estimated/actual time (if available in custom fields)
             # NOTE: Must extract this BEFORE setting completion status because Scoro requires
@@ -470,19 +496,31 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             resource_subtype = task.get('resource_subtype', '')
             is_milestone = resource_subtype == 'milestone'
             
-            # Get followers
+            # Get followers - extract names from users map if available
             followers = task.get('followers', [])
             follower_names = []
+            users_map = asana_data.get('users', {})
             if followers:
                 for follower in followers:
+                    follower_name = None
+                    follower_gid = None
+                    
                     if isinstance(follower, dict):
+                        follower_gid = follower.get('gid')
                         follower_name = follower.get('name', '')
-                    elif hasattr(follower, 'name'):
-                        follower_name = follower.name
+                    elif hasattr(follower, 'gid'):
+                        follower_gid = follower.gid
+                        follower_name = follower.name if hasattr(follower, 'name') else None
                     else:
-                        follower_name = str(follower)
-                    if follower_name:
-                        follower_names.append(follower_name)
+                        follower_name = str(follower) if follower else None
+                    
+                    # If we have users map, try to get name from there (more reliable)
+                    if follower_gid and follower_gid in users_map:
+                        user_details = users_map[follower_gid]
+                        follower_name = user_details.get('name', follower_name)
+                    
+                    if follower_name and str(follower_name).strip():
+                        follower_names.append(str(follower_name).strip())
             
             # Get permalink for reference
             permalink = task.get('permalink_url', '')
@@ -516,10 +554,41 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                 transformed_task['datetime_completed'] = datetime_completed  # Scoro API uses 'datetime_completed' (ISO8601)
             if priority_id:
                 transformed_task['priority_id'] = priority_id  # Scoro API uses 'priority_id' (Integer: 1=high, 2=normal, 3=low)
+            # Set owner_id (project owner) - comes from PM Name custom field
+            # This is the project manager, same for all tasks in the project
             if responsible:
                 transformed_task['owner_name'] = responsible  # Store name, importer will resolve to owner_id
+                logger.debug(f"    Task owner (project manager): {responsible}")
+            
+            # Set related_users (task assignee and followers) - should be different from owner
+            # These are task-specific users (assignee and followers), different per task
+            related_users_list = []
             if assigned_to:
-                transformed_task['assigned_to_name'] = assigned_to  # Store name, importer will resolve to related_users array
+                # Add assignee to related_users
+                related_users_list.append(assigned_to)
+                logger.debug(f"    Task assignee: {assigned_to}")
+            
+            # Add followers to related_users (if not already included)
+            if follower_names:
+                for follower_name in follower_names:
+                    validated_follower = validate_user(follower_name, default_to_tom=False)
+                    if validated_follower and validated_follower not in related_users_list:
+                        related_users_list.append(validated_follower)
+                        logger.debug(f"    Task follower: {validated_follower}")
+            
+            # Store related_users as a list (importer will resolve each name to user_id)
+            if related_users_list:
+                transformed_task['assigned_to_name'] = related_users_list  # Store as list, importer will resolve to related_users array
+                logger.debug(f"    Task related_users: {related_users_list}")
+            else:
+                logger.debug(f"    No related_users for this task")
+            
+            # Log if owner and related_users overlap (they should be different)
+            if responsible and related_users_list:
+                if responsible in related_users_list:
+                    logger.debug(f"    ⚠ Note: Project owner '{responsible}' is also in related_users - this is OK but they serve different purposes")
+                else:
+                    logger.debug(f"    ✓ Project owner '{responsible}' is different from related_users {related_users_list}")
             if project_name:
                 transformed_task['project_name'] = project_name  # Store name, importer will resolve to project_id
             if project_phase:

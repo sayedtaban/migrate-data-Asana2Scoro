@@ -110,7 +110,7 @@ def export_asana_project(asana_client: AsanaClient, project_name: Optional[str] 
                 detailed_tasks.append(task)
         
         # Build task dependency map
-        step_num = "7/7" if project_name else "6/7"
+        step_num = "7/8" if project_name else "6/8"
         logger.info(f"Step {step_num}: Building task dependency relationships...")
         dependencies_map = {}
         for task in detailed_tasks:
@@ -123,12 +123,77 @@ def export_asana_project(asana_client: AsanaClient, project_name: Optional[str] 
                     'dependents': [dep.get('gid') if isinstance(dep, dict) else str(dep) for dep in dependents] if dependents else []
                 }
         
+        # Gather user information from GIDs
+        step_num = "8/8" if project_name else "7/8"
+        logger.info(f"Step {step_num}: Gathering user information from Asana...")
+        user_gids = set()
+        
+        # Collect all user GIDs from tasks (assignees and followers)
+        for task in detailed_tasks:
+            # Get assignee GID
+            assignee = task.get('assignee')
+            if assignee:
+                if isinstance(assignee, dict):
+                    assignee_gid = assignee.get('gid')
+                elif hasattr(assignee, 'gid'):
+                    assignee_gid = assignee.gid
+                else:
+                    assignee_gid = None
+                if assignee_gid:
+                    user_gids.add(assignee_gid)
+            
+            # Get follower GIDs
+            followers = task.get('followers', [])
+            if followers:
+                for follower in followers:
+                    if isinstance(follower, dict):
+                        follower_gid = follower.get('gid')
+                    elif hasattr(follower, 'gid'):
+                        follower_gid = follower.gid
+                    else:
+                        follower_gid = None
+                    if follower_gid:
+                        user_gids.add(follower_gid)
+            
+            # Get user GIDs from stories/comments (created_by)
+            stories = task.get('stories', [])
+            if stories:
+                for story in stories:
+                    created_by = story.get('created_by') if isinstance(story, dict) else None
+                    if created_by:
+                        if isinstance(created_by, dict):
+                            creator_gid = created_by.get('gid')
+                        elif hasattr(created_by, 'gid'):
+                            creator_gid = created_by.gid
+                        else:
+                            creator_gid = None
+                        if creator_gid:
+                            user_gids.add(creator_gid)
+        
+        # Get user details for all unique GIDs
+        users_map = {}  # Map GID -> user details
+        if user_gids:
+            logger.info(f"  Found {len(user_gids)} unique users, retrieving details...")
+            for user_gid in user_gids:
+                try:
+                    user_details = asana_client.get_user_details(user_gid)
+                    if user_details:
+                        users_map[user_gid] = user_details
+                        user_name = user_details.get('name', 'Unknown')
+                        logger.debug(f"    ✓ Retrieved user: {user_name} (GID: {user_gid})")
+                except Exception as e:
+                    logger.warning(f"    ⚠ Could not retrieve user details for GID {user_gid}: {e}")
+            logger.info(f"  ✓ Retrieved details for {len(users_map)} users")
+        else:
+            logger.info("  No users found in tasks")
+        
         export_data = {
             'project': project_details,
             'tasks': detailed_tasks,
             'milestones': milestones,
             'sections': sections,
             'dependencies': dependencies_map,
+            'users': users_map,  # Add user mapping: GID -> user details
             'exported_at': datetime.now().isoformat()
         }
         
