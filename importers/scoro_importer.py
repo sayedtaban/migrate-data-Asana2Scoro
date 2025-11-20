@@ -237,8 +237,94 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                             task_data['project_id'] = project_id
                             logger.debug(f"    Linked to project ID: {project_id}")
                         
+                        # Resolve name fields to IDs before cleaning task_data
+                        # - owner_name -> owner_id (Integer)
+                        owner_name = task_data.get('owner_name')
+                        if owner_name:
+                            try:
+                                owner = scoro_client.find_user_by_name(owner_name)
+                                if owner:
+                                    owner_id = owner.get('id')
+                                    if owner_id:
+                                        task_data['owner_id'] = owner_id
+                                        owner_full_name = owner.get('full_name') or f"{owner.get('firstname', '')} {owner.get('lastname', '')}".strip()
+                                        logger.debug(f"    Resolved owner '{owner_name}' to owner_id: {owner_id} ({owner_full_name})")
+                                    else:
+                                        logger.warning(f"    Owner '{owner_name}' found but no ID available")
+                                else:
+                                    logger.warning(f"    Could not find owner '{owner_name}' in Scoro users")
+                            except Exception as e:
+                                logger.warning(f"    Error resolving owner '{owner_name}': {e}")
+                        
+                        # - assigned_to_name -> related_users (Array of user IDs)
+                        assigned_to_name = task_data.get('assigned_to_name')
+                        if assigned_to_name:
+                            try:
+                                # Handle both single name (string) and multiple names (list)
+                                assigned_names = assigned_to_name if isinstance(assigned_to_name, list) else [assigned_to_name]
+                                related_user_ids = []
+                                
+                                for name in assigned_names:
+                                    if not name or not str(name).strip():
+                                        continue
+                                    user = scoro_client.find_user_by_name(str(name).strip())
+                                    if user:
+                                        user_id = user.get('id')
+                                        if user_id:
+                                            related_user_ids.append(user_id)
+                                            user_full_name = user.get('full_name') or f"{user.get('firstname', '')} {user.get('lastname', '')}".strip()
+                                            logger.debug(f"    Resolved assigned user '{name}' to user_id: {user_id} ({user_full_name})")
+                                        else:
+                                            logger.warning(f"    Assigned user '{name}' found but no ID available")
+                                    else:
+                                        logger.warning(f"    Could not find assigned user '{name}' in Scoro users")
+                                
+                                if related_user_ids:
+                                    task_data['related_users'] = related_user_ids
+                                    logger.debug(f"    Set related_users: {related_user_ids}")
+                            except Exception as e:
+                                logger.warning(f"    Error resolving assigned users '{assigned_to_name}': {e}")
+                        
+                        # - project_phase_name -> project_phase_id (Integer)
+                        project_phase_name = task_data.get('project_phase_name')
+                        if project_phase_name and project_id:
+                            try:
+                                phase = scoro_client.find_phase_by_name(project_phase_name, project_id=project_id)
+                                if phase:
+                                    phase_id = phase.get('id') or phase.get('phase_id')
+                                    if phase_id:
+                                        task_data['project_phase_id'] = phase_id
+                                        phase_title = phase.get('title') or phase.get('name', 'Unknown')
+                                        logger.debug(f"    Resolved phase '{project_phase_name}' to project_phase_id: {phase_id} ({phase_title})")
+                                    else:
+                                        logger.warning(f"    Phase '{project_phase_name}' found but no ID available")
+                                else:
+                                    logger.warning(f"    Could not find phase '{project_phase_name}' in project {project_id}")
+                            except Exception as e:
+                                logger.warning(f"    Error resolving phase '{project_phase_name}': {e}")
+                        elif project_phase_name and not project_id:
+                            logger.warning(f"    Cannot resolve phase '{project_phase_name}': Project ID not available")
+                        
+                        # - company_name -> company_id (Integer)
+                        # Note: Company is usually set at project level, but can be overridden at task level
+                        company_name = task_data.get('company_name')
+                        if company_name:
+                            try:
+                                company = scoro_client.find_company_by_name(company_name)
+                                if company:
+                                    company_id = company.get('id') or company.get('company_id') or company.get('client_id') or company.get('contact_id')
+                                    if company_id:
+                                        task_data['company_id'] = company_id
+                                        logger.debug(f"    Resolved company '{company_name}' to company_id: {company_id}")
+                                    else:
+                                        logger.warning(f"    Company '{company_name}' found but no ID available")
+                                else:
+                                    logger.warning(f"    Could not find company '{company_name}' in Scoro companies")
+                            except Exception as e:
+                                logger.warning(f"    Error resolving company '{company_name}': {e}")
+                        
                         # Remove fields that Scoro might not accept (metadata and name-only fields)
-                        # Exclude: internal tracking fields, name-only fields (need ID resolution), 
+                        # Exclude: internal tracking fields, name-only fields (already resolved to IDs), 
                         # and fields not in Scoro Tasks API reference
                         # Note: 'stories' is excluded from task creation but will be processed separately
                         task_data_clean = {k: v for k, v in task_data.items() 
@@ -250,13 +336,6 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                         # Map 'title' to 'event_name' (Scoro API requirement)
                         if 'title' in task_data_clean and 'event_name' not in task_data_clean:
                             task_data_clean['event_name'] = task_data_clean.pop('title')
-                        
-                        # TODO: Resolve user names to IDs
-                        # - owner_name -> owner_id (Integer)
-                        # - assigned_to_name -> related_users (Array of user IDs)
-                        # - project_phase_name -> project_phase_id (Integer)
-                        # - company_name -> company_id (Integer)
-                        # For now, these fields are removed. ID resolution needs to be implemented.
                         
                         # Create the task
                         task = scoro_client.create_task(task_data_clean)

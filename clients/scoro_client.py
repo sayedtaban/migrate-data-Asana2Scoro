@@ -844,4 +844,155 @@ class ScoroClient:
         except Exception as e:
             logger.warning(f"Error finding user '{user_name}': {e}")
             return None
+    
+    @retry_with_backoff()
+    @rate_limit
+    def list_project_phases(self, project_id: Optional[int] = None) -> List[Dict]:
+        """
+        List all project phases in Scoro
+        
+        Args:
+            project_id: Optional project ID to filter phases for a specific project
+        
+        Returns:
+            List of phase dictionaries
+        """
+        try:
+            # Scoro API v2 endpoint for project phases
+            endpoint = 'projects/phases'
+            
+            # Base request body format per Scoro API documentation
+            base_request = {
+                "lang": "eng",
+                "company_account_id": self.company_name,
+                "apiKey": self.api_key,
+                "request": {}
+            }
+            
+            # Add project_id filter if provided
+            if project_id:
+                base_request["request"]["filters"] = {"project_id": project_id}
+            
+            request_formats = [
+                # Format 1: Standard format
+                base_request,
+                # Format 2: With basic_data flag
+                {**base_request, "basic_data": "1"},
+            ]
+            
+            last_error = None
+            data = None
+            success = False
+            
+            # Try POST with different request formats
+            for request_body in request_formats:
+                if success:
+                    break
+                try:
+                    logger.debug(f"Trying POST to endpoint '{endpoint}'")
+                    headers_without_auth = {
+                        'Content-Type': 'application/json'
+                    }
+                    response = requests.post(
+                        f'{self.base_url}{endpoint}',
+                        headers=headers_without_auth,
+                        json=request_body
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+                    
+                    # Check if we got an error response
+                    if isinstance(data, dict) and data.get('status') == 'ERROR':
+                        error_msg = data.get('messages', {}).get('error', ['Unknown error'])
+                        last_error = f"Scoro API error: {error_msg}"
+                        logger.debug(f"Format failed with error: {error_msg}, trying next format...")
+                        continue
+                    
+                    # If we got here, the request was successful
+                    success = True
+                    break
+                except requests.exceptions.HTTPError as e:
+                    if e.response is not None:
+                        try:
+                            error_data = e.response.json()
+                            if isinstance(error_data, dict) and error_data.get('status') == 'ERROR':
+                                error_msg = error_data.get('messages', {}).get('error', ['Unknown error'])
+                                last_error = f"Scoro API error: {error_msg}"
+                                logger.debug(f"Format failed with HTTP error: {error_msg}, trying next format...")
+                                continue
+                            else:
+                                # Non-error response, might be valid
+                                data = error_data
+                                success = True
+                                break
+                        except Exception:
+                            pass
+                    last_error = str(e)
+                    logger.debug(f"Format failed with exception: {e}, trying next format...")
+                    continue
+            
+            if data is None:
+                logger.warning("Could not list project phases from Scoro API")
+                return []
+            
+            # Handle different response structures
+            if isinstance(data, list):
+                phases = data
+            elif isinstance(data, dict):
+                if 'data' in data and isinstance(data['data'], list):
+                    phases = data['data']
+                elif 'phases' in data and isinstance(data['phases'], list):
+                    phases = data['phases']
+                else:
+                    phases = []
+            else:
+                phases = []
+            
+            logger.debug(f"Retrieved {len(phases)} project phases from Scoro")
+            return phases
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Error listing Scoro project phases: {e}")
+            return []
+    
+    @retry_with_backoff()
+    @rate_limit
+    def find_phase_by_name(self, phase_name: str, project_id: Optional[int] = None) -> Optional[Dict]:
+        """
+        Find a project phase by name in Scoro
+        
+        Args:
+            phase_name: Name (title) of the phase to find
+            project_id: Optional project ID to limit search to a specific project
+        
+        Returns:
+            Phase dictionary if found, None otherwise
+        """
+        try:
+            phases = self.list_project_phases(project_id=project_id)
+            if not phases:
+                logger.debug(f"No phases available to search for: {phase_name}")
+                return None
+            
+            phase_name_lower = phase_name.lower().strip()
+            
+            for phase in phases:
+                # Try title field (most common)
+                title = phase.get('title', '')
+                if title and title.lower().strip() == phase_name_lower:
+                    phase_id = phase.get('id') or phase.get('phase_id')
+                    logger.debug(f"Found phase by title: {title} (ID: {phase_id})")
+                    return phase
+                
+                # Try name field as fallback
+                name = phase.get('name', '')
+                if name and name.lower().strip() == phase_name_lower:
+                    phase_id = phase.get('id') or phase.get('phase_id')
+                    logger.debug(f"Found phase by name: {name} (ID: {phase_id})")
+                    return phase
+            
+            logger.debug(f"Phase not found: {phase_name}")
+            return None
+        except Exception as e:
+            logger.warning(f"Error finding phase '{phase_name}': {e}")
+            return None
 
