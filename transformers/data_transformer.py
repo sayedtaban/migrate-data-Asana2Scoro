@@ -85,6 +85,30 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                     logger.info(f"  Found company name from task custom field: {company_name}")
                     break
         
+        # Extract PM (Project Manager) name from tasks
+        # Check tasks for PM Name custom field to determine the project manager
+        pm_name = None
+        tasks = asana_data.get('tasks', [])
+        pm_counts = {}  # Track PM name frequency
+        
+        # Check all tasks for PM Name
+        for task in tasks:
+            task_pm = extract_custom_field_value(task, 'PM Name') or extract_custom_field_value(task, 'PM')
+            if task_pm and task_pm.strip():
+                task_pm = task_pm.strip()
+                # Validate and normalize the PM name
+                validated_pm = validate_user(task_pm, default_to_tom=False)
+                if validated_pm:  # Only count if validation returns a valid name
+                    pm_counts[validated_pm] = pm_counts.get(validated_pm, 0) + 1
+        
+        # Determine the most common PM, or use the first one found
+        if pm_counts:
+            # Get the PM with the highest count
+            pm_name = max(pm_counts.items(), key=lambda x: x[1])[0]
+            logger.info(f"  Found PM from task custom fields: {pm_name} (appears in {pm_counts[pm_name]} tasks)")
+        else:
+            logger.debug(f"  No PM name found in task custom fields")
+        
         # Transform project with comprehensive fields matching Scoro API format
         # Reference: Scoro API Reference.md - Projects API fields
         transformed_project = {
@@ -94,6 +118,10 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
         # Add company name to project data for reference
         if company_name:
             transformed_project['company_name'] = company_name
+        
+        # Add PM name to project data for reference (will be resolved to manager_id during import)
+        if pm_name:
+            transformed_project['manager_name'] = pm_name
         
         # Add project metadata matching Scoro API format
         # Map Asana "Project Overview" (stored in 'notes' field) to Scoro project description/details field
@@ -141,6 +169,10 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             logger.info(f"  Company name: {company_name}")
         else:
             logger.info(f"  Company name: Will be extracted from project name during import")
+        if pm_name:
+            logger.info(f"  PM/Manager: {pm_name}")
+        else:
+            logger.info(f"  PM/Manager: Not found in task custom fields")
         
         # Transform milestones
         milestones_to_transform = asana_data.get('milestones', [])

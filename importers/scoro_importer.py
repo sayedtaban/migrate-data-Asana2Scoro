@@ -97,6 +97,31 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                     else:
                         logger.warning(f"  Company record found but no ID available: {company}")
                 
+                # Resolve and set project manager (PM)
+                manager_name = project_data.get('manager_name')
+                if manager_name:
+                    logger.info(f"  Resolving project manager: {manager_name}...")
+                    try:
+                        manager = scoro_client.find_user_by_name(manager_name)
+                        if manager:
+                            manager_id = manager.get('id')
+                            if manager_id:
+                                project_data['manager_id'] = manager_id
+                                manager_full_name = manager.get('full_name') or f"{manager.get('firstname', '')} {manager.get('lastname', '')}".strip()
+                                logger.info(f"  ✓ Set project manager: {manager_full_name} (ID: {manager_id})")
+                            else:
+                                logger.warning(f"  Manager found but no ID available: {manager}")
+                        else:
+                            logger.warning(f"  Could not find manager '{manager_name}' in Scoro users")
+                    except Exception as e:
+                        logger.warning(f"  Error resolving manager '{manager_name}': {e}")
+                        # Continue without manager_id
+                else:
+                    logger.debug("  No manager name found in project data")
+                
+                # Remove manager_name from project_data as it's not a valid Scoro API field
+                project_data.pop('manager_name', None)
+                
                 project = scoro_client.create_project(project_data)
                 import_results['project'] = project
                 summary.add_success()

@@ -390,3 +390,84 @@ permissions : Array : Object user permissions. Used only for user based API
 custom_fields : Object : Custom fields. Only filled on view requests.
 is_deleted : Boolean : Is deleted. Use 'include_deleted = 1' in request object to get deleted objects to response as well.
 deleted_date : Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP) : The date when object was deleted.
+
+### Users
+Name : Type : Description
+id : Integer : User ID.
+username : String : Username.
+firstname : String : First name.
+lastname : String : Last name.
+full_name : String : User full name.
+initials : String : Initials.
+email : String : Email address.
+is_active : Boolean : Deprecated If user is active or deactivated.
+status : String : User status. Possible values: active, inactive, pending, awaiting
+birthday : Date (YYYY-mm-dd) : Users birthday.
+category : String : User category. Possible values: user, admin or customer portal. Default values: user, admin.
+position : String : User job/position.
+user_picture : String : User profile image URL. Available only for "list" and "view" actions
+role_id : Integer : User permission set ID.
+user_groups_ids : Array : User groups ID-s.
+country_id : String : User country ID.
+gsm : String : User phone number.
+timezone : String : User timezone
+availability : Array : Current availability rule for the user. Contains array of weekdays and corresponding availability on that day in seconds. Possible values are monday, tuesday, wednesday, thursday, friday, saturday, sunday, holiday.
+modified_date : Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP) : The date when user was last modified.
+
+https://#companyname#.scoro.com/api/v2/users/list
+Description:
+Getting users list with user token. Returns array of user objects.
+Example request body:
+
+{
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "user_token": "USER_TOKEN",
+    "request": {}
+}
+
+Example response body:
+
+{
+    "status": "OK",
+    "statusCode": "200",
+    "messages": null,
+    "data": [
+        {
+            "id": 1,
+            "username": "test",
+            "firstname": "test",
+            "lastname": "test",
+            "initials": "T1",
+            "email": "test[at]scoro.com",
+            "is_active": 1,
+            "status": "active",
+            "birthday": "1970-01-01",
+            "position": "Manager",
+            "category": "admin",
+            "availability": {
+                "monday": 3600,
+                "tuesday": 14400,
+                "holiday": 0
+            }
+        },
+        {
+            "id": 2,
+            "username": "test2",
+            "firstname": "test2",
+            "lastname": "test2",
+            "initials": "T2",
+            "email": "test2[at]scoro.com",
+            "is_active": 1,
+            "status": "active",
+            "birthday": "1980-01-01",
+            "position": "Manager 2",
+            "category": "admin",
+            "availability": {
+                "monday": 3600,
+                "tuesday": 14400,
+                "holiday": 0
+            }
+        }
+    ]
+}

@@ -596,4 +596,182 @@ class ScoroClient:
             company_data.update(additional_data)
         
         return self.create_company(company_data)
+    
+    @retry_with_backoff()
+    @rate_limit
+    def list_users(self) -> List[Dict]:
+        """
+        List all users in Scoro
+        
+        Returns:
+            List of user dictionaries
+        """
+        try:
+            # Scoro API v2 requires POST to users/list with specific request format
+            # Similar to companies/list and projects/list endpoints
+            endpoint = 'users/list'
+            
+            # Base request body format per Scoro API documentation
+            # Note: API docs show user_token for users/list, but we'll try apiKey first (consistent with other endpoints)
+            base_request = {
+                "lang": "eng",
+                "company_account_id": self.company_name,
+                "apiKey": self.api_key,
+                "request": {}
+            }
+            
+            request_formats = [
+                # Format 1: Standard format per API documentation (empty request object) with apiKey
+                base_request,
+                # Format 2: With basic_data flag
+                {**base_request, "basic_data": "1"},
+                # Format 3: With filters in request
+                {**base_request, "request": {"filters": {}}},
+                # Format 4: Try with user_token instead of apiKey (API docs show user_token for users/list)
+                {
+                    "lang": "eng",
+                    "company_account_id": self.company_name,
+                    "user_token": self.api_key,
+                    "request": {}
+                },
+            ]
+            
+            last_error = None
+            data = None
+            success = False
+            
+            # Scoro API v2 requires POST requests with a request body
+            # Try POST with different request formats
+            for request_body in request_formats:
+                if success:
+                    break
+                try:
+                    logger.debug(f"Trying POST to endpoint '{endpoint}'")
+                    # Remove Authorization header when using apiKey in body
+                    headers_without_auth = {
+                        'Content-Type': 'application/json'
+                    }
+                    response = requests.post(
+                        f'{self.base_url}{endpoint}',
+                        headers=headers_without_auth,
+                        json=request_body
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+                    
+                    # Check if we got an error response
+                    if isinstance(data, dict) and data.get('status') == 'ERROR':
+                        error_msg = data.get('messages', {}).get('error', ['Unknown error'])
+                        last_error = f"Scoro API error: {error_msg}"
+                        logger.debug(f"Format failed with error: {error_msg}, trying next format...")
+                        continue
+                    
+                    # If we got here, the request was successful
+                    success = True
+                    break
+                except requests.exceptions.HTTPError as e:
+                    if e.response is not None:
+                        try:
+                            error_data = e.response.json()
+                            if isinstance(error_data, dict) and error_data.get('status') == 'ERROR':
+                                error_msg = error_data.get('messages', {}).get('error', ['Unknown error'])
+                                last_error = f"Scoro API error: {error_msg}"
+                                logger.debug(f"Format failed with HTTP error: {error_msg}, trying next format...")
+                                continue
+                            else:
+                                # Non-error response, might be valid
+                                data = error_data
+                                success = True
+                                break
+                        except Exception:
+                            pass
+                    last_error = str(e)
+                    logger.debug(f"Format failed with exception: {e}, trying next format...")
+                    continue
+            
+            if data is None:
+                logger.warning("Could not list users from Scoro API")
+                return []
+            
+            # Handle different response structures
+            if isinstance(data, list):
+                users = data
+            elif isinstance(data, dict):
+                if 'data' in data and isinstance(data['data'], list):
+                    users = data['data']
+                elif 'users' in data and isinstance(data['users'], list):
+                    users = data['users']
+                else:
+                    users = []
+            else:
+                users = []
+            
+            logger.info(f"Retrieved {len(users)} users from Scoro")
+            return users
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Error listing Scoro users: {e}")
+            return []
+    
+    @retry_with_backoff()
+    @rate_limit
+    def find_user_by_name(self, user_name: str) -> Optional[Dict]:
+        """
+        Find a user by name in Scoro
+        
+        Args:
+            user_name: Name of the user to find (can be full_name, firstname + lastname, or email)
+        
+        Returns:
+            User dictionary if found, None otherwise
+        """
+        try:
+            users = self.list_users()
+            if not users:
+                logger.debug(f"No users available to search for: {user_name}")
+                return None
+            
+            user_name_lower = user_name.lower().strip()
+            
+            # Try multiple matching strategies
+            for user in users:
+                # Try full_name first
+                full_name = user.get('full_name', '')
+                if full_name and full_name.lower().strip() == user_name_lower:
+                    user_id = user.get('id')
+                    logger.info(f"Found user by full_name: {full_name} (ID: {user_id})")
+                    return user
+                
+                # Try firstname + lastname
+                firstname = user.get('firstname', '')
+                lastname = user.get('lastname', '')
+                if firstname and lastname:
+                    combined_name = f"{firstname} {lastname}".lower().strip()
+                    if combined_name == user_name_lower:
+                        user_id = user.get('id')
+                        logger.info(f"Found user by firstname+lastname: {combined_name} (ID: {user_id})")
+                        return user
+                
+                # Try email
+                email = user.get('email', '')
+                if email and email.lower().strip() == user_name_lower:
+                    user_id = user.get('id')
+                    logger.info(f"Found user by email: {email} (ID: {user_id})")
+                    return user
+                
+                # Try partial match on full_name (in case of slight variations)
+                if full_name:
+                    # Check if the provided name is contained in full_name or vice versa
+                    full_name_lower = full_name.lower().strip()
+                    if user_name_lower in full_name_lower or full_name_lower in user_name_lower:
+                        # Only match if it's a reasonable match (not too short)
+                        if len(user_name_lower) >= 3 and len(full_name_lower) >= 3:
+                            user_id = user.get('id')
+                            logger.info(f"Found user by partial match: {full_name} (ID: {user_id})")
+                            return user
+            
+            logger.debug(f"User not found: {user_name}")
+            return None
+        except Exception as e:
+            logger.warning(f"Error finding user '{user_name}': {e}")
+            return None
 
