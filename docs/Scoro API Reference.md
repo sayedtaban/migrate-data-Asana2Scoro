@@ -379,6 +379,7 @@ Possible values: billable, non_billable, custom.
 billable: billable_hours will be set same as duration_planned.
 non_billable: billable_hours will be set to 0.
 custom: billable_hours will be used as defined.
+
 owner_id : Integer : User ID of the user that is responsible for the event.
 created_user : Integer : User ID of the user who created the event.
 modified_user : Integer : User ID of the user who modified the event.

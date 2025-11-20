@@ -479,6 +479,8 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                 transformed_task['datetime_due'] = datetime_due  # Scoro API uses 'datetime_due' (ISO8601)
             if estimated_time:
                 transformed_task['duration_planned'] = estimated_time  # Scoro API uses 'duration_planned' (Time HH:ii:ss)
+                # Set billable_time_type to 'billable' so billable_hours equals duration_planned
+                transformed_task['billable_time_type'] = 'billable'  # Scoro API: 'billable' sets billable_hours = duration_planned
             if actual_time:
                 transformed_task['duration_actual'] = actual_time  # Scoro API uses 'duration_actual' (Time HH:ii:ss)
             if activity_type:
