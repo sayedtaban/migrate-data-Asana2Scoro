@@ -6,10 +6,12 @@ from typing import Dict, Optional
 
 from clients.asana_client import AsanaClient
 from utils import logger
+from config import TEST_MODE_MAX_TASKS
 
 
 def export_asana_project(asana_client: AsanaClient, project_name: Optional[str] = None, 
-                         project_gid: Optional[str] = None, workspace_gid: Optional[str] = None) -> Optional[Dict]:
+                         project_gid: Optional[str] = None, workspace_gid: Optional[str] = None,
+                         max_tasks: Optional[int] = TEST_MODE_MAX_TASKS) -> Optional[Dict]:
     """
     Export project data from Asana
     
@@ -18,6 +20,8 @@ def export_asana_project(asana_client: AsanaClient, project_name: Optional[str] 
         project_name: Name of the project to export (optional if project_gid is provided)
         project_gid: Direct project GID to export (optional if project_name is provided)
         workspace_gid: Workspace GID (optional, used when searching by name)
+        max_tasks: Optional limit on number of tasks to export (for testing).
+                   Set to None to export all tasks. Defaults to TEST_MODE_MAX_TASKS from config.
     
     Returns:
         Dictionary containing project data, tasks, sections, etc.
@@ -58,6 +62,13 @@ def export_asana_project(asana_client: AsanaClient, project_name: Optional[str] 
         step_num = "3/5" if project_name else "2/5"
         logger.info(f"Step {step_num}: Retrieving project tasks...")
         tasks = asana_client.get_project_tasks(project_gid)
+        original_task_count = len(tasks)
+        
+        # Apply test mode limit if specified
+        if max_tasks is not None and max_tasks > 0 and len(tasks) > max_tasks:
+            tasks = tasks[:max_tasks]
+            logger.info(f"⚠ TEST MODE: Limiting task export to {max_tasks} tasks (out of {original_task_count} total tasks)")
+        
         logger.info(f"✓ Found {len(tasks)} tasks in project")
         
         # Get sections

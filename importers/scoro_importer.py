@@ -8,10 +8,11 @@ from clients.scoro_client import ScoroClient
 from clients.asana_client import AsanaClient
 from models import MigrationSummary
 from utils import logger, process_batch
-from config import DEFAULT_BATCH_SIZE
+from config import DEFAULT_BATCH_SIZE, TEST_MODE_MAX_TASKS
 
 def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: MigrationSummary, 
-                     batch_size: int = DEFAULT_BATCH_SIZE, asana_client: Optional[AsanaClient] = None) -> Dict:
+                     batch_size: int = DEFAULT_BATCH_SIZE, asana_client: Optional[AsanaClient] = None,
+                     max_tasks: Optional[int] = TEST_MODE_MAX_TASKS) -> Dict:
     """
     Import transformed data into Scoro with batch processing support
     
@@ -21,6 +22,8 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
         summary: Migration summary tracker
         batch_size: Number of items to process in each batch
         asana_client: Optional AsanaClient instance for fetching user details by GID
+        max_tasks: Optional limit on number of tasks to migrate (for testing). 
+                   Set to None to migrate all tasks. Defaults to TEST_MODE_MAX_TASKS from config.
     
     Returns:
         Dictionary containing import results
@@ -214,6 +217,12 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                 import_results['project'].get('projectId')
             )
         tasks_to_import = transformed_data.get('tasks', [])
+        
+        # Apply test mode limit if specified
+        original_task_count = len(tasks_to_import)
+        if max_tasks is not None and max_tasks > 0 and len(tasks_to_import) > max_tasks:
+            tasks_to_import = tasks_to_import[:max_tasks]
+            logger.info(f"⚠ TEST MODE: Limiting task migration to {max_tasks} tasks (out of {original_task_count} total tasks)")
         
         if tasks_to_import:
             logger.info(f"Creating {len(tasks_to_import)} tasks in Scoro (batch size: {batch_size})...")
