@@ -77,6 +77,10 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
             try:
                 project_data = transformed_data['project'].copy()
                 
+                # Map 'name' to 'project_name' (Scoro API requirement)
+                if 'name' in project_data and 'project_name' not in project_data:
+                    project_data['project_name'] = project_data.pop('name')
+                
                 # Link project to company if we have one
                 # In Scoro, projects must be linked to a company/client record
                 if company:
@@ -104,28 +108,54 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
         else:
             logger.warning("No project data found in transformed_data")
         
-        # Create milestones
+        # Create milestones (phases) - include them in project modification
         milestones_to_import = transformed_data.get('milestones', [])
-        if milestones_to_import:
-            logger.info(f"Creating {len(milestones_to_import)} milestones in Scoro...")
-            project_id = import_results['project'].get('id') if import_results['project'] else None
-            
-            for idx, milestone_data in enumerate(milestones_to_import, 1):
-                milestone_name = milestone_data.get('name', 'Unknown')
-                logger.info(f"  [{idx}/{len(milestones_to_import)}] Creating milestone: {milestone_name}")
+        if milestones_to_import and import_results['project']:
+            project_id = import_results['project'].get('id')
+            if project_id:
+                logger.info(f"Adding {len(milestones_to_import)} milestones (phases) to project in Scoro...")
                 try:
-                    if project_id:
-                        milestone_data['project_id'] = project_id
+                    # Transform milestones to Scoro phase format
+                    phases = []
+                    for milestone_data in milestones_to_import:
+                        phase_data = {}
+                        
+                        # Map 'name' to 'title' (Scoro API requirement for phases)
+                        phase_data['title'] = milestone_data.get('title') or milestone_data.get('name', 'Unknown')
+                        phase_data['type'] = 'milestone'  # Use 'milestone' type for milestones
+                        
+                        # Add dates if available
+                        if milestone_data.get('due_date'):
+                            phase_data['end_date'] = milestone_data['due_date']
+                        
+                        if milestone_data.get('start_date'):
+                            phase_data['start_date'] = milestone_data['start_date']
+                        
+                        phases.append(phase_data)
+                        logger.info(f"  - {phase_data['title']}")
                     
-                    milestone = scoro_client.create_milestone(milestone_data)
-                    import_results['milestones'].append(milestone)
+                    # Modify project to add phases
+                    project_update_data = {'phases': phases}
+                    updated_project = scoro_client.create_project(project_update_data, project_id=project_id)
+                    
+                    # Extract phases from response if available
+                    if 'phases' in updated_project:
+                        import_results['milestones'] = updated_project['phases']
+                    else:
+                        # If phases aren't in response, mark them as created anyway
+                        import_results['milestones'] = [{'title': p['title']} for p in phases]
+                    
                     summary.add_success()
-                    logger.info(f"    ✓ Milestone created: {milestone_name}")
+                    logger.info(f"✓ Successfully added {len(phases)} milestones to project")
                 except Exception as e:
-                    error_msg = f"Failed to create milestone '{milestone_name}': {e}"
-                    logger.error(f"    ✗ {error_msg}")
+                    error_msg = f"Failed to add milestones to project: {e}"
+                    logger.error(f"✗ {error_msg}")
                     import_results['errors'].append(error_msg)
                     summary.add_failure(error_msg)
+            else:
+                logger.warning("Cannot add milestones: Project ID not available")
+        elif milestones_to_import and not import_results['project']:
+            logger.warning(f"Cannot create {len(milestones_to_import)} milestones: Project creation failed")
         
         # Create tasks with batch processing
         project_id = import_results['project'].get('id') if import_results['project'] else None
@@ -155,6 +185,10 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                         task_data_clean = {k: v for k, v in task_data.items() 
                                          if k not in ['asana_gid', 'asana_permalink', 'dependencies', 'num_subtasks', 
                                                       'attachment_count', 'attachment_refs', 'followers']}
+                        
+                        # Map 'title' to 'event_name' (Scoro API requirement)
+                        if 'title' in task_data_clean and 'event_name' not in task_data_clean:
+                            task_data_clean['event_name'] = task_data_clean.pop('title')
                         
                         task = scoro_client.create_task(task_data_clean)
                         import_results['tasks'].append(task)
