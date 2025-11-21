@@ -128,6 +128,50 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                 # Remove manager_name from project_data as it's not a valid Scoro API field
                 project_data.pop('manager_name', None)
                 
+                # Resolve and set project members (project team)
+                # Asana project members → Scoro project_users array
+                project_members = project_data.get('members', [])
+                if project_members:
+                    logger.info(f"  Resolving {len(project_members)} project members...")
+                    project_user_ids = []
+                    resolved_count = 0
+                    failed_count = 0
+                    
+                    for member_name in project_members:
+                        if not member_name or not str(member_name).strip():
+                            continue
+                        
+                        try:
+                            member = scoro_client.find_user_by_name(str(member_name).strip())
+                            if member:
+                                member_id = member.get('id')
+                                if member_id:
+                                    project_user_ids.append(member_id)
+                                    member_full_name = member.get('full_name') or f"{member.get('firstname', '')} {member.get('lastname', '')}".strip()
+                                    logger.debug(f"    ✓ Resolved member '{member_name}' to user_id: {member_id} ({member_full_name})")
+                                    resolved_count += 1
+                                else:
+                                    logger.warning(f"    Member '{member_name}' found but no ID available")
+                                    failed_count += 1
+                            else:
+                                logger.warning(f"    Could not find member '{member_name}' in Scoro users")
+                                failed_count += 1
+                        except Exception as e:
+                            logger.warning(f"    Error resolving member '{member_name}': {e}")
+                            failed_count += 1
+                    
+                    if project_user_ids:
+                        project_data['project_users'] = project_user_ids
+                        logger.info(f"  ✓ Set {resolved_count} project members (IDs: {project_user_ids})")
+                    
+                    if failed_count > 0:
+                        logger.warning(f"  ⚠ Failed to resolve {failed_count} project members")
+                else:
+                    logger.debug("  No project members found in project data")
+                
+                # Remove members from project_data as it's not a valid Scoro API field (we use project_users)
+                project_data.pop('members', None)
+                
                 project = scoro_client.create_project(project_data)
                 import_results['project'] = project
                 summary.add_success()

@@ -139,6 +139,33 @@ def export_asana_project(asana_client: AsanaClient, project_name: Optional[str] 
         logger.info(f"Step {step_num}: Gathering user information from Asana...")
         user_gids = set()
         
+        # First, add project owner and members to ensure they're always included
+        # This is important for TEST MODE where owner/members might not appear in limited task set
+        project_owner = project_details.get('owner')
+        if project_owner:
+            if isinstance(project_owner, dict):
+                owner_gid = project_owner.get('gid')
+            elif hasattr(project_owner, 'gid'):
+                owner_gid = project_owner.gid
+            else:
+                owner_gid = None
+            if owner_gid:
+                user_gids.add(owner_gid)
+                logger.debug(f"  Added project owner GID to users: {owner_gid}")
+        
+        project_members = project_details.get('members', [])
+        if project_members:
+            for member in project_members:
+                if isinstance(member, dict):
+                    member_gid = member.get('gid')
+                elif hasattr(member, 'gid'):
+                    member_gid = member.gid
+                else:
+                    member_gid = None
+                if member_gid:
+                    user_gids.add(member_gid)
+            logger.debug(f"  Added {len(project_members)} project members GIDs to users")
+        
         # Collect all user GIDs from tasks (assignees and followers)
         for task in detailed_tasks:
             # Get assignee GID

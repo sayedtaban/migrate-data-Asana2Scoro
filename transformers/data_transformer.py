@@ -85,57 +85,112 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                     break
         
         # Extract Project Manager/Owner from Asana project
-        # Priority: 1) Project owner field (if in users map - i.e., team member), 2) Task custom fields (PM Name)
-        # Note: Asana project owner might be a client/external user not in the team users map
+        # Priority: ALWAYS use Asana Project Owner as Scoro Project Manager
+        # Asana Project Owner → Scoro Project Manager (manager_id)
         pm_name = None
         users_map = asana_data.get('users', {})
         
-        # First, try to get project owner from project.owner field
+        # Get project owner from project.owner field - this is the authoritative source
         project_owner = project.get('owner')
         owner_gid = None
+        owner_name_from_owner_field = None
+        
         if project_owner:
             if isinstance(project_owner, dict):
                 owner_gid = project_owner.get('gid')
+                owner_name_from_owner_field = project_owner.get('name')  # Try to get name directly
             elif hasattr(project_owner, 'gid'):
                 owner_gid = project_owner.gid
+                owner_name_from_owner_field = getattr(project_owner, 'name', None)
             
-            # Look up owner name in users map (only contains team members, not external/client users)
-            if owner_gid and owner_gid in users_map:
+            # Try method 1: Get name directly from owner field
+            if owner_name_from_owner_field:
+                pm_name = owner_name_from_owner_field
+                logger.info(f"  Found project owner name from project.owner field: {pm_name} (GID: {owner_gid})")
+            # Try method 2: Look up in users map
+            elif owner_gid and owner_gid in users_map:
                 owner_details = users_map[owner_gid]
                 pm_name = owner_details.get('name', '')
                 if pm_name:
-                    logger.info(f"  Found project owner from project.owner field: {pm_name} (GID: {owner_gid})")
+                    logger.info(f"  Found project owner from users map: {pm_name} (GID: {owner_gid})")
+            # Try method 3: Search tasks for owner name
             elif owner_gid:
-                logger.info(f"  Project owner GID {owner_gid} found but not in team users map (likely client/external user)")
-        
-        # If no team member owner found from project field, fall back to task custom fields
-        # This finds the actual Halstead PM managing the project
-        if not pm_name:
-            tasks = asana_data.get('tasks', [])
-            pm_counts = {}  # Track PM name frequency
-            
-            # Check all tasks for PM Name custom field
-            for task in tasks:
-                task_pm = extract_custom_field_value(task, 'PM Name') or extract_custom_field_value(task, 'PM')
-                if task_pm and task_pm.strip():
-                    task_pm = task_pm.strip()
-                    # Validate and normalize the PM name
-                    validated_pm = validate_user(task_pm, default_to_tom=False)
-                    if validated_pm:  # Only count if validation returns a valid name
-                        pm_counts[validated_pm] = pm_counts.get(validated_pm, 0) + 1
-            
-            # Determine the most common PM, or use the first one found
-            if pm_counts:
-                # Get the PM with the highest count
-                pm_name = max(pm_counts.items(), key=lambda x: x[1])[0]
-                logger.info(f"  Found PM from task custom fields: {pm_name} (appears in {pm_counts[pm_name]} tasks)")
-            else:
-                logger.debug(f"  No PM name found in project owner or task custom fields")
+                logger.info(f"  Project owner GID {owner_gid} not in users map, searching all tasks...")
+                tasks = asana_data.get('tasks', [])
+                
+                # Search all tasks to find this user's name
+                for task in tasks:  
+                    if pm_name:  # Already found, can break
+                        break
+                    
+                    # Check assignee
+                    assignee = task.get('assignee')
+                    if assignee:
+                        assignee_gid = None
+                        assignee_name = None
+                        if isinstance(assignee, dict):
+                            assignee_gid = assignee.get('gid')
+                            assignee_name = assignee.get('name')
+                        elif hasattr(assignee, 'gid'):
+                            assignee_gid = assignee.gid
+                            assignee_name = getattr(assignee, 'name', None)
+                        
+                        if assignee_gid == owner_gid and assignee_name:
+                            pm_name = assignee_name
+                            logger.info(f"  ✓ Found project owner from task assignee: {pm_name} (GID: {owner_gid})")
+                            break
+                    
+                    # Check created_by
+                    created_by = task.get('created_by')
+                    if created_by:
+                        created_by_gid = None
+                        created_by_name = None
+                        if isinstance(created_by, dict):
+                            created_by_gid = created_by.get('gid')
+                            created_by_name = created_by.get('name')
+                        elif hasattr(created_by, 'gid'):
+                            created_by_gid = created_by.gid
+                            created_by_name = getattr(created_by, 'name', None)
+                        
+                        if created_by_gid == owner_gid and created_by_name:
+                            pm_name = created_by_name
+                            logger.info(f"  ✓ Found project owner from task created_by: {pm_name} (GID: {owner_gid})")
+                            break
+                    
+                    # Check followers/collaborators in stories
+                    for story in task.get('stories', []):
+                        if pm_name:
+                            break
+                        story_created_by = story.get('created_by')
+                        if story_created_by:
+                            story_gid = None
+                            story_name = None
+                            if isinstance(story_created_by, dict):
+                                story_gid = story_created_by.get('gid')
+                                story_name = story_created_by.get('name')
+                            elif hasattr(story_created_by, 'gid'):
+                                story_gid = story_created_by.gid
+                                story_name = getattr(story_created_by, 'name', None)
+                            
+                            if story_gid == owner_gid and story_name:
+                                pm_name = story_name
+                                logger.info(f"  ✓ Found project owner from story author: {pm_name} (GID: {owner_gid})")
+                                break
+                
+                if not pm_name:
+                    logger.warning(f"  ⚠ Could not find name for project owner GID {owner_gid}")
+                    logger.warning(f"  ⚠ Project will be created without a manager assigned")
+        else:
+            logger.warning(f"  ⚠ No project owner found in Asana project data")
+            logger.warning(f"  ⚠ Project will be created without a manager assigned")
         
         # Extract project members for reference
+        # Asana project members → Scoro project team members
         project_members = []
         members_list = project.get('members', [])
         if members_list:
+            tasks = asana_data.get('tasks', [])
+            
             for member in members_list:
                 member_gid = None
                 if isinstance(member, dict):
@@ -143,16 +198,68 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                 elif hasattr(member, 'gid'):
                     member_gid = member.gid
                 
-                # Look up member name in users map
-                if member_gid and member_gid in users_map:
+                if not member_gid:
+                    continue
+                
+                member_name = None
+                
+                # Look up member name in users map first
+                if member_gid in users_map:
                     member_details = users_map[member_gid]
                     member_name = member_details.get('name', '')
+                    if member_name:
+                        logger.debug(f"    Found member from users map: {member_name} (GID: {member_gid})")
+                else:
+                    # Member not in users map - try to find name from tasks
+                    logger.debug(f"    Member GID {member_gid} not in users map, searching tasks...")
+                    for task in tasks:
+                        # Check assignee
+                        assignee = task.get('assignee')
+                        if assignee:
+                            assignee_gid = None
+                            assignee_name = None
+                            if isinstance(assignee, dict):
+                                assignee_gid = assignee.get('gid')
+                                assignee_name = assignee.get('name')
+                            elif hasattr(assignee, 'gid'):
+                                assignee_gid = assignee.gid
+                                assignee_name = getattr(assignee, 'name', None)
+                            
+                            if assignee_gid == member_gid and assignee_name:
+                                member_name = assignee_name
+                                logger.debug(f"    Found member from task assignee: {member_name} (GID: {member_gid})")
+                                break
+                        
+                        # Check created_by if not found in assignee
+                        if not member_name:
+                            created_by = task.get('created_by')
+                            if created_by:
+                                created_by_gid = None
+                                created_by_name = None
+                                if isinstance(created_by, dict):
+                                    created_by_gid = created_by.get('gid')
+                                    created_by_name = created_by.get('name')
+                                elif hasattr(created_by, 'gid'):
+                                    created_by_gid = created_by.gid
+                                    created_by_name = getattr(created_by, 'name', None)
+                                
+                                if created_by_gid == member_gid and created_by_name:
+                                    member_name = created_by_name
+                                    logger.debug(f"    Found member from task created_by: {member_name} (GID: {member_gid})")
+                                    break
+                    
+                    if not member_name:
+                        logger.debug(f"    Could not find name for member GID {member_gid} in users map or tasks")
+                
+                # Add unique member names to the list
                     if member_name and member_name not in project_members:
                         project_members.append(member_name)
             
             if project_members:
                 logger.info(f"  Found {len(project_members)} project members: {', '.join(project_members[:5])}" + 
                            (f" and {len(project_members) - 5} more" if len(project_members) > 5 else ""))
+            else:
+                logger.debug(f"  No project members found (checked {len(members_list)} member GIDs)")
         
         # Transform project with comprehensive fields matching Scoro API format
         # Reference: Scoro API Reference.md - Projects API fields
