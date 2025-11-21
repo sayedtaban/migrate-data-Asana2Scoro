@@ -973,6 +973,15 @@ class ScoroClient:
                 logger.debug(f"No phases available to search for: {phase_name}")
                 return None
             
+            # IMPORTANT: Filter phases by project_id here because Scoro API may not honor the filter
+            # and return phases from all projects. This prevents matching phases from wrong projects.
+            if project_id is not None:
+                phases = [p for p in phases if p.get('project_id') == project_id]
+                if not phases:
+                    logger.debug(f"No phases found for project ID {project_id} after filtering")
+                    return None
+                logger.debug(f"Filtered to {len(phases)} phases for project ID {project_id}")
+            
             phase_name_lower = phase_name.lower().strip()
             
             for phase in phases:
@@ -980,17 +989,19 @@ class ScoroClient:
                 title = phase.get('title', '')
                 if title and title.lower().strip() == phase_name_lower:
                     phase_id = phase.get('id') or phase.get('phase_id')
-                    logger.debug(f"Found phase by title: {title} (ID: {phase_id})")
+                    phase_project_id = phase.get('project_id')
+                    logger.debug(f"Found phase by title: {title} (ID: {phase_id}, Project ID: {phase_project_id})")
                     return phase
                 
                 # Try name field as fallback
                 name = phase.get('name', '')
                 if name and name.lower().strip() == phase_name_lower:
                     phase_id = phase.get('id') or phase.get('phase_id')
-                    logger.debug(f"Found phase by name: {name} (ID: {phase_id})")
+                    phase_project_id = phase.get('project_id')
+                    logger.debug(f"Found phase by name: {name} (ID: {phase_id}, Project ID: {phase_project_id})")
                     return phase
             
-            logger.debug(f"Phase not found: {phase_name}")
+            logger.debug(f"Phase '{phase_name}' not found in project {project_id if project_id else 'any'}")
             return None
         except Exception as e:
             logger.warning(f"Error finding phase '{phase_name}': {e}")
