@@ -275,6 +275,25 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
             if project_company_id:
                 logger.debug(f"Will reuse company ID {project_company_id} for tasks")
         
+        # Fetch and cache activities to avoid repeated API calls for each task
+        logger.info("Fetching activities from Scoro for activity type resolution...")
+        try:
+            activities = scoro_client.list_activities()
+            activity_name_to_id = {}
+            for activity in activities:
+                name = activity.get('name') or activity.get('activity_name') or activity.get('title', '')
+                activity_id = activity.get('id') or activity.get('activity_id')
+                if name and activity_id:
+                    activity_name_to_id[name.strip()] = activity_id
+                    activity_name_to_id[name.strip().lower()] = activity_id  # Also store lowercase for case-insensitive lookup
+            logger.info(f"✓ Cached {len(activities)} activities from Scoro")
+            if activities:
+                logger.debug(f"  Sample activities: {list(activity_name_to_id.keys())[:5]}")
+        except Exception as e:
+            logger.warning(f"Failed to fetch activities from Scoro: {e}")
+            logger.warning("Activity type migration will not work without activities list")
+            activity_name_to_id = {}
+        
         tasks_to_import = transformed_data.get('tasks', [])
         
         # Apply test mode limit if specified
@@ -400,15 +419,35 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                 except Exception as e:
                                     logger.warning(f"    Error resolving company '{company_name}': {e}")
                         
+                        # - activity_type -> activity_id (Integer)
+                        # Scoro API requires activity_id (integer) not activity_type (string)
+                        activity_type_name = task_data.get('activity_type')
+                        if activity_type_name:
+                            # Try exact match first
+                            activity_id = activity_name_to_id.get(activity_type_name.strip())
+                            
+                            # Try case-insensitive match if exact match fails
+                            if not activity_id:
+                                activity_id = activity_name_to_id.get(activity_type_name.strip().lower())
+                            
+                            if activity_id:
+                                task_data['activity_id'] = activity_id
+                                logger.debug(f"    Resolved activity type '{activity_type_name}' to activity_id: {activity_id}")
+                            else:
+                                logger.warning(f"    Could not find activity '{activity_type_name}' in Scoro activities")
+                                logger.debug(f"    Available activities: {list(activity_name_to_id.keys())[:10]}")
+                        
                         # Remove fields that Scoro might not accept (metadata and name-only fields)
                         # Exclude: internal tracking fields, name-only fields (already resolved to IDs), 
                         # and fields not in Scoro Tasks API reference
                         # Note: 'stories' and 'calculated_time_entry' are excluded from task creation but will be processed separately
+                        # Note: 'activity_type' (string) is excluded because we're using 'activity_id' (integer) instead
                         task_data_clean = {k: v for k, v in task_data.items() 
                                          if k not in ['asana_gid', 'asana_permalink', 'dependencies', 'num_subtasks', 
                                                       'attachment_count', 'attachment_refs', 'followers',
                                                       'owner_name', 'assigned_to_name', 'project_phase_name', 
-                                                      'project_name', 'company_name', 'tags', 'is_milestone', 'stories', 'calculated_time_entry']}
+                                                      'project_name', 'company_name', 'tags', 'is_milestone', 'stories', 
+                                                      'calculated_time_entry', 'activity_type']}
                         
                         # Map 'title' to 'event_name' (Scoro API requirement)
                         if 'title' in task_data_clean and 'event_name' not in task_data_clean:

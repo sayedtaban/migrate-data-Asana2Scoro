@@ -714,6 +714,93 @@ class ScoroClient:
     
     @retry_with_backoff()
     @rate_limit
+    def list_activities(self) -> List[Dict]:
+        """
+        List all activities from Scoro
+        
+        Returns:
+            List of activity dictionaries
+        """
+        try:
+            # Scoro API v2 requires POST to activities/list with specific request format
+            endpoint = 'activities/list'
+            
+            # Build request body per Scoro API v2 format
+            request_body = self._build_request_body({})
+            
+            logger.debug(f"Trying POST to endpoint '{endpoint}'")
+            
+            response = requests.post(
+                f'{self.base_url}{endpoint}',
+                headers=self.headers,
+                json=request_body
+            )
+            response.raise_for_status()
+            result = response.json()
+            
+            # Handle different response structures
+            if isinstance(result, list):
+                activities = result
+            elif isinstance(result, dict):
+                # Check if activities are in a 'data' key
+                if 'data' in result and isinstance(result['data'], list):
+                    activities = result['data']
+                else:
+                    logger.warning(f"Unexpected response structure from Scoro API: {result}")
+                    activities = []
+            else:
+                logger.warning(f"Unexpected response type from Scoro API: {type(result)}")
+                activities = []
+            
+            logger.info(f"Retrieved {len(activities)} activities from Scoro")
+            return activities
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error listing Scoro activities: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response: {e.response.text}")
+            return []
+    
+    def find_activity_by_name(self, activity_name: str) -> Optional[Dict]:
+        """
+        Find an activity by name in Scoro
+        
+        Args:
+            activity_name: Activity name to search for
+        
+        Returns:
+            Activity dictionary if found, None otherwise
+        """
+        if not activity_name or not str(activity_name).strip():
+            return None
+        
+        activity_name = str(activity_name).strip()
+        
+        # Get all activities
+        activities = self.list_activities()
+        if not activities:
+            logger.warning("No activities found in Scoro")
+            return None
+        
+        # Try exact match first
+        for activity in activities:
+            name = activity.get('name') or activity.get('activity_name') or activity.get('title', '')
+            if name.strip() == activity_name:
+                logger.debug(f"Found activity by exact match: {name} (ID: {activity.get('id')})")
+                return activity
+        
+        # Try case-insensitive match
+        activity_name_lower = activity_name.lower()
+        for activity in activities:
+            name = activity.get('name') or activity.get('activity_name') or activity.get('title', '')
+            if name.strip().lower() == activity_name_lower:
+                logger.debug(f"Found activity by case-insensitive match: {name} (ID: {activity.get('id')})")
+                return activity
+        
+        logger.warning(f"Activity '{activity_name}' not found in Scoro")
+        return None
+    
+    @retry_with_backoff()
+    @rate_limit
     def create_comment(self, module: str, object_id: int, comment_text: str, user_id: Optional[int] = None, parent_id: Optional[int] = None, comment_id: Optional[int] = None) -> Dict:
         """
         Create or modify a comment in Scoro
