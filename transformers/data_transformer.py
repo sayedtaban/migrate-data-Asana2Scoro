@@ -546,7 +546,7 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             
             if completed and completed_at and has_actual_time:
                 # Task is completed AND has time entries - safe to mark as completed
-                status = 'task_status4'  # Scoro API uses task_status1-4, using task_status4 for completed
+                status = 'task_status5'  # Scoro site has 5 statuses: task_status5 = Completed
                 is_completed = True  # Scoro API uses Boolean
                 datetime_completed = completed_at
                 if isinstance(datetime_completed, str):
@@ -561,12 +561,12 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             elif completed and completed_at and not has_actual_time:
                 # Task was completed in Asana but has no time entries
                 # Scoro won't accept it as completed, so set to in-progress status instead
-                status = 'task_status2'  # Use task_status2 (in-progress) instead of completed
+                status = 'task_status3'  # Scoro site has 5 statuses: task_status3 = In progress
                 is_completed = False  # Don't mark as completed
                 datetime_completed = None  # Don't set completion datetime
                 logger.debug(f"    ⚠ Task was completed in Asana but has no time entries - setting to in-progress status instead")
             else:
-                status = 'task_status1'  # Scoro API uses task_status1-4, using task_status1 for planned/in-progress
+                status = 'task_status1'  # Scoro site has 5 statuses: task_status1 = Planned
                 is_completed = False  # Scoro API uses Boolean
                 datetime_completed = None
             
