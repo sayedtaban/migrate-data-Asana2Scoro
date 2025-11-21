@@ -784,6 +784,63 @@ class ScoroClient:
     
     @retry_with_backoff()
     @rate_limit
+    def create_time_entry(self, time_entry_data: Dict, time_entry_id: Optional[int] = None) -> Dict:
+        """
+        Create or modify a time entry in Scoro
+        
+        Args:
+            time_entry_data: Time entry data dictionary (must include 'event_id' and 'user_id' at minimum)
+            time_entry_id: Optional time entry ID for updating existing time entry
+        
+        Returns:
+            Created or updated time entry dictionary
+        """
+        try:
+            # Validate required fields
+            if 'event_id' not in time_entry_data:
+                raise ValueError("event_id is required for time entry")
+            if 'user_id' not in time_entry_data:
+                raise ValueError("user_id is required for time entry when using apiKey")
+            
+            # Build request body per Scoro API v2 format
+            request_body = self._build_request_body(time_entry_data)
+            
+            # Use modify endpoint - with ID for updates, without for creates
+            if time_entry_id:
+                endpoint = f'timeEntries/modify/{time_entry_id}'
+            else:
+                endpoint = 'timeEntries/modify'
+            
+            response = requests.post(
+                f'{self.base_url}{endpoint}',
+                headers=self.headers,
+                json=request_body
+            )
+            response.raise_for_status()
+            result = response.json()
+            
+            # Handle response structure
+            if isinstance(result, dict):
+                if result.get('status') == 'ERROR':
+                    error_msg = result.get('messages', {}).get('error', ['Unknown error'])
+                    raise ValueError(f"Scoro API error: {error_msg}")
+                # Response may have data key or be the time entry directly
+                time_entry = result.get('data', result)
+            else:
+                time_entry = result
+            
+            time_entry_id_returned = time_entry.get('time_entry_id') or time_entry.get('id')
+            duration = time_entry.get('duration', 'Unknown')
+            logger.debug(f"Created/updated Scoro time entry (ID: {time_entry_id_returned}, Duration: {duration})")
+            return time_entry
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error creating/updating Scoro time entry: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response: {e.response.text}")
+            raise
+    
+    @retry_with_backoff()
+    @rate_limit
     def find_user_by_name(self, user_name: str) -> Optional[Dict]:
         """
         Find a user by name in Scoro

@@ -403,12 +403,12 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                         # Remove fields that Scoro might not accept (metadata and name-only fields)
                         # Exclude: internal tracking fields, name-only fields (already resolved to IDs), 
                         # and fields not in Scoro Tasks API reference
-                        # Note: 'stories' is excluded from task creation but will be processed separately
+                        # Note: 'stories' and 'calculated_time_entry' are excluded from task creation but will be processed separately
                         task_data_clean = {k: v for k, v in task_data.items() 
                                          if k not in ['asana_gid', 'asana_permalink', 'dependencies', 'num_subtasks', 
                                                       'attachment_count', 'attachment_refs', 'followers',
                                                       'owner_name', 'assigned_to_name', 'project_phase_name', 
-                                                      'project_name', 'company_name', 'tags', 'is_milestone', 'stories']}
+                                                      'project_name', 'company_name', 'tags', 'is_milestone', 'stories', 'calculated_time_entry']}
                         
                         # Map 'title' to 'event_name' (Scoro API requirement)
                         if 'title' in task_data_clean and 'event_name' not in task_data_clean:
@@ -434,6 +434,83 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                         break
                                 except (ValueError, TypeError):
                                     continue
+                        
+                        # Create time entry if task has calculated_time_entry
+                        # This happens for completed tasks that had no time entries in Asana
+                        calculated_time_entry = task_data.get('calculated_time_entry')
+                        if calculated_time_entry and scoro_task_id is not None:
+                            try:
+                                logger.info(f"    Creating time entry for completed task...")
+                                
+                                # Prepare time entry data for Scoro API
+                                time_entry_data = {
+                                    'event_id': scoro_task_id,
+                                    'event_type': calculated_time_entry.get('event_type', 'task'),
+                                    'time_entry_type': calculated_time_entry.get('time_entry_type', 'task'),
+                                    'start_datetime': calculated_time_entry.get('start_datetime'),
+                                    'end_datetime': calculated_time_entry.get('end_datetime'),
+                                    'duration': calculated_time_entry.get('duration'),
+                                    'is_completed': calculated_time_entry.get('is_completed', True),
+                                    'completed_datetime': calculated_time_entry.get('completed_datetime'),
+                                    'billable_time_type': calculated_time_entry.get('billable_time_type', 'billable'),
+                                }
+                                
+                                # Resolve user_id from user_name if provided
+                                user_name = calculated_time_entry.get('user_name')
+                                if user_name:
+                                    try:
+                                        user = scoro_client.find_user_by_name(user_name)
+                                        if user:
+                                            user_id = user.get('id')
+                                            if user_id:
+                                                time_entry_data['user_id'] = user_id
+                                                logger.debug(f"      Resolved time entry user '{user_name}' to user_id: {user_id}")
+                                            else:
+                                                logger.warning(f"      Time entry user '{user_name}' found but no ID available")
+                                        else:
+                                            logger.warning(f"      Could not find time entry user '{user_name}' in Scoro users")
+                                    except Exception as e:
+                                        logger.warning(f"      Error resolving time entry user '{user_name}': {e}")
+                                
+                                # Create time entry via Scoro Time Entries API
+                                time_entry = scoro_client.create_time_entry(time_entry_data)
+                                logger.info(f"    ✓ Time entry created: {calculated_time_entry.get('duration')} hours")
+                                logger.debug(f"      Time entry ID: {time_entry.get('time_entry_id', 'Unknown')}")
+                                
+                                # Now update the task to mark it as completed (if needed)
+                                if calculated_time_entry.get('should_complete_task'):
+                                    try:
+                                        logger.info(f"    Marking task as completed...")
+                                        task_completed_at = calculated_time_entry.get('task_completed_at')
+                                        
+                                        # Prepare task update data
+                                        task_update_data = {
+                                            'is_completed': True,
+                                            'status': 'task_status5',  # Completed status
+                                        }
+                                        
+                                        # Add completion datetime if available
+                                        if task_completed_at:
+                                            if isinstance(task_completed_at, str):
+                                                try:
+                                                    if 'T' not in task_completed_at:
+                                                        task_completed_at = f"{task_completed_at}T00:00:00"
+                                                    task_update_data['datetime_completed'] = task_completed_at
+                                                except Exception as e:
+                                                    logger.debug(f"      Could not parse datetime_completed: {e}")
+                                        
+                                        # Update task via Scoro Tasks API
+                                        updated_task = scoro_client.create_task(task_update_data, task_id=scoro_task_id)
+                                        logger.info(f"    ✓ Task marked as completed")
+                                        
+                                    except Exception as e:
+                                        logger.warning(f"    ⚠ Failed to mark task as completed: {e}")
+                                
+                            except Exception as e:
+                                # Log warning but don't fail the entire task
+                                logger.warning(f"    ⚠ Failed to create time entry for task: {e}")
+                        elif calculated_time_entry and not scoro_task_id:
+                            logger.warning(f"    ⚠ Cannot create time entry: Task ID not available in response")
                         
                         # Create comments separately via Scoro Comments API
                         if stories and scoro_task_id is not None:

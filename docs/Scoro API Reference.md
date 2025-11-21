@@ -670,3 +670,206 @@ Example response body:
     ]
 }
 
+### Time entries
+This API endpoint supports requests authenticated by either user_token or apiKey.
+
+Name	Type	Description
+time_entry_id	Integer	Time entry ID.
+description	String	Description.
+title	String	Time Entry title. It will be constructed dynamically based on description and activity id values.
+user_id	Integer	Related user ID.
+activity_id	Integer	Related activity ID.
+billable_time_type	String	Billable time type. Optional.
+Possible values: billable, non_billable, custom.
+invoice_line_id	Integer	Related invoice line ID.
+event_id	Integer	Related event ID.
+event_type	String	Event type, task or cal.
+calendar_event_id	Integer	Calendar event id for consolidated time entry.
+time_entry_type	String	Time entry type, task or cal.
+start_datetime	Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP)	Planned start date and time.
+end_datetime	Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP)	Planned end date and time.
+duration	Time (HH:ii:ss)	Time entry duration. Rounded to the nearest minute.
+billable_duration	Time (HH:ii:ss)	Billable duration for time entry. Only used if site has billable hours feature activated. Rounded to the nearest minute.
+is_completed	Boolean	Is the time entry completed or not.
+is_confirmed	Boolean	Is the time entry confirmed or not.
+is_billable	Boolean	Deprecated, use billable_time_type instead.
+completed_datetime	Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP)	Date and time when the time entry was completed. Will be set to current time, if time entry is completed and no datetime provided.
+is_locked	Boolean	Is the time entry locked or not. The parameter is available only if the "Use time locking" setting is enabled.
+permissions	Array	Object user permissions. Used only for user based API
+modified_date	Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP)	Date and time when the time entry was modified. If a new time entry is added - it will be set to the current time (created_date).
+time_entry_date	Date	Date of the time entry
+is_submitted	Boolean	Is the time entry submitted or not.
+submitted_date	Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP)	Date and time when the time entry was submitted.
+is_deleted	Boolean	Is deleted. Use 'include_deleted = 1' in request object to get deleted objects to response as well.
+deleted_date	Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP)	The date when object was deleted.
+Available actions are
+setDone Version: v2
+Request URL:
+https://#companyname#.scoro.com/api/v2/timeEntries/setDone/(#id)
+Description:
+Setting time entry as done.
+Example request body:
+
+{
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "request": {}
+}
+
+Example response body:
+
+{
+    "status": "OK",
+    "statusCode": "200",
+    "messages": null
+}
+
+modify Version: v2
+Request URL:
+https://#companyname#.scoro.com/api/v2/timeEntries/modify/(#id)
+Description:
+Adding new and modifying current time entries. Event ID and user_id (when using apiKey) are mandatory for new time entries. Adding "return_data" parameter will control if object data will be returned with successful request. You can only modify invoice_line_id value on time entries related to calendar events. Use the calendar API to modify the event itself if you need to change anything else.
+Example request body:
+
+{
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "request": {
+        "event_id": "1"
+    }
+}
+
+Example response body:
+
+{
+    "status": "OK",
+    "statusCode": 200,
+    "messages": null,
+    "data": {
+        "time_entry_id": 1,
+        "description": "",
+        "title": "",
+        "user_id": 1,
+        "activity_id": 0,
+        "billable_time_type": "billable",
+        "invoice_line_id": 0,
+        "event_id": 1,
+        "event_type": "task",
+        "calendar_event_id": 0,
+        "time_entry_type": "task",
+        "start_datetime": "2016-03-25T15:47:20+02:00",
+        "duration": "00:30:00",
+        "billable_duration": "00:25:00",
+        "is_completed": 1,
+        "completed_datetime": "2016-03-25T15:47:20+02:00",
+        "is_deleted": 0
+    }
+}
+
+delete Version: v2
+Request URL:
+https://#companyname#.scoro.com/api/v2/timeEntries/delete/(#id)
+Description:
+Deleting time entry.
+Example request body:
+
+{
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "request": {}
+}
+
+Example response body:
+
+{
+    "status": "OK",
+    "statusCode": "200",
+    "messages": null
+}
+
+list Version: v2
+Request URL:
+https://#companyname#.scoro.com/api/v2/timeEntries/list
+Description:
+Listing time entries.
+Example request body:
+
+{
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "request": {}
+}
+
+Example response body:
+
+{
+    "status": "OK",
+    "statusCode": 200,
+    "messages": null,
+    "data": [
+        {
+            "time_entry_id": 1,
+            "description": "",
+            "title": "",
+            "user_id": 1,
+            "activity_id": 0,
+            "invoice_line_id": 0,
+            "event_id": 1,
+            "event_type": "task",
+            "calendar_event_id": 0,
+            "time_entry_type": "task",
+            "start_datetime": "2017-03-13T18:00:00+02:00",
+            "duration": "01:00:00",
+            "billable_duration": "00:00:00",
+            "is_completed": 0,
+            "is_confirmed": 0,
+            "is_billable": 0,
+            "completed_datetime": null,
+            "is_deleted": 0,
+            "deleted_date": null
+        }
+    ]
+}
+
+view Version: v2
+Request URL:
+https://#companyname#.scoro.com/api/v2/timeEntries/view/(#id)
+Description:
+View time entry.
+Example request body:
+
+{
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "request": {}
+}
+
+Example response body:
+
+{
+    "status": "OK",
+    "statusCode": 200,
+    "messages": null,
+    "data": {
+        "time_entry_id": 1,
+        "description": "",
+        "title": "",
+        "user_id": 3,
+        "activity_id": 0,
+        "invoice_line_id": 0,
+        "event_id": 48,
+        "event_type": "task",
+        "calendar_event_id": 0,
+        "time_entry_type": "task",
+        "start_datetime": "2010-03-16T11:00:00+02:00",
+        "duration": "01:30:00",
+        "billable_duration": "00:00:00",
+        "is_completed": 0,
+        "is_confirmed": 0,
+        "is_billable": 0,
+        "completed_datetime": null,
+        "is_deleted": 0,
+        "deleted_date": null
+    }
+}
+

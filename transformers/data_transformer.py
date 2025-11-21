@@ -539,13 +539,75 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             
             # Get completion status
             # IMPORTANT: Scoro requires that tasks marked as done must have time entries.
-            # If a task was completed in Asana but has no actual_time, we cannot mark it as completed.
+            # If a task was completed in Asana but has no actual_time, calculate it from created_at to completed_at
             completed = task.get('completed', False)
             completed_at = task.get('completed_at')
             has_actual_time = actual_time and str(actual_time).strip()
             
-            if completed and completed_at and has_actual_time:
-                # Task is completed AND has time entries - safe to mark as completed
+            # If task is completed but has no actual time, calculate duration and create time entry
+            calculated_time_entry = None
+            if completed and completed_at and not has_actual_time:
+                try:
+                    # Parse created_at and completed_at timestamps
+                    created_at_str = str(created_at).strip()
+                    completed_at_str = str(completed_at).strip()
+                    
+                    # Parse timestamps
+                    if 'T' in created_at_str:
+                        if created_at_str.endswith('Z'):
+                            created_dt = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
+                        else:
+                            created_dt = datetime.fromisoformat(created_at_str)
+                    else:
+                        created_dt = datetime.strptime(created_at_str.split()[0], '%Y-%m-%d')
+                    
+                    if 'T' in completed_at_str:
+                        if completed_at_str.endswith('Z'):
+                            completed_dt = datetime.fromisoformat(completed_at_str.replace('Z', '+00:00'))
+                        else:
+                            completed_dt = datetime.fromisoformat(completed_at_str)
+                    else:
+                        completed_dt = datetime.strptime(completed_at_str.split()[0], '%Y-%m-%d')
+                    
+                    # Calculate duration
+                    duration = completed_dt - created_dt
+                    total_seconds = int(duration.total_seconds())
+                    
+                    # Convert to HH:MM:SS format (Scoro expects Time format HH:ii:ss)
+                    hours = total_seconds // 3600
+                    minutes = (total_seconds % 3600) // 60
+                    seconds = total_seconds % 60
+                    actual_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+                    
+                    # Create time entry object for Scoro Time Entries API
+                    # Reference: Scoro API Reference.md - Time Entries API
+                    calculated_time_entry = {
+                        'start_datetime': created_at_str,  # ISO8601 format
+                        'end_datetime': completed_at_str,  # ISO8601 format
+                        'duration': actual_time,  # HH:MM:SS format
+                        'is_completed': True,  # Mark as completed
+                        'completed_datetime': completed_at_str,  # ISO8601 format
+                        'event_type': 'task',  # This is a task time entry
+                        'time_entry_type': 'task',  # Time entry type
+                        'billable_time_type': 'billable',  # Default to billable
+                    }
+                    
+                    # Add user_id reference (will be resolved by importer)
+                    if assignee:
+                        calculated_time_entry['user_name'] = assignee  # Store name, importer will resolve to user_id
+                    
+                    logger.info(f"    ✓ Created time entry for completed task: {actual_time} (from {created_at} to {completed_at})")
+                    has_actual_time = True
+                except Exception as e:
+                    logger.warning(f"    ⚠ Could not calculate time entry for completed task: {e}")
+                    has_actual_time = False
+            
+            # Determine initial task status based on whether we have a calculated time entry
+            # IMPORTANT: If we have a calculated_time_entry, we must create the task as "planned" first,
+            # then create the time entry, and finally update the task to "completed".
+            # This is because Scoro rejects creating tasks as completed without existing time entries.
+            if completed and completed_at and has_actual_time and not calculated_time_entry:
+                # Task is completed AND has time entries (from Asana) - safe to mark as completed immediately
                 status = 'task_status5'  # Scoro site has 5 statuses: task_status5 = Completed
                 is_completed = True  # Scoro API uses Boolean
                 datetime_completed = completed_at
@@ -558,13 +620,23 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                     except Exception as e:
                         logger.debug(f"    Could not parse datetime_completed: {datetime_completed}, error: {e}")
                         datetime_completed = None
+            elif completed and completed_at and has_actual_time and calculated_time_entry:
+                # Task is completed but has calculated time entry - create as "planned" first
+                # We'll create the time entry and then update the task to "completed" in the importer
+                status = 'task_status1'  # Scoro site has 5 statuses: task_status1 = Planned
+                is_completed = False  # Create as not completed initially
+                datetime_completed = None  # Don't set completion datetime yet
+                # Store completion info in the calculated_time_entry for later update
+                calculated_time_entry['should_complete_task'] = True
+                calculated_time_entry['task_completed_at'] = completed_at
+                logger.debug(f"    Task will be marked as completed after time entry creation")
             elif completed and completed_at and not has_actual_time:
-                # Task was completed in Asana but has no time entries
-                # Scoro won't accept it as completed, so set to in-progress status instead
-                status = 'task_status3'  # Scoro site has 5 statuses: task_status3 = In progress
+                # Task was completed in Asana but could not calculate time entries
+                # Set to planned status (not in-progress, since it's actually completed but we couldn't calculate time)
+                status = 'task_status1'  # Scoro site has 5 statuses: task_status1 = Planned
                 is_completed = False  # Don't mark as completed
                 datetime_completed = None  # Don't set completion datetime
-                logger.debug(f"    ⚠ Task was completed in Asana but has no time entries - setting to in-progress status instead")
+                logger.warning(f"    ⚠ Task was completed in Asana but could not calculate time entries - setting to planned status")
             else:
                 status = 'task_status1'  # Scoro site has 5 statuses: task_status1 = Planned
                 is_completed = False  # Scoro API uses Boolean
@@ -792,6 +864,12 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             # Store stories/comments for separate comment creation via Scoro Comments API
             if stories:
                 transformed_task['stories'] = stories
+            
+            # Store calculated time entry for completed tasks without time entries
+            # This will be created via Scoro Time Entries API after the task is created
+            if calculated_time_entry:
+                transformed_task['calculated_time_entry'] = calculated_time_entry
+                logger.debug(f"    Added calculated time entry to task: {calculated_time_entry['duration']}")
             
             transformed_data['tasks'].append(transformed_task)
             tasks_written += 1
