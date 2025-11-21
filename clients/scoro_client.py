@@ -859,7 +859,7 @@ class ScoroClient:
         """
         try:
             # Scoro API v2 endpoint for project phases
-            endpoint = 'projects/phases'
+            endpoint = 'projectPhases/list'
             
             # Base request body format per Scoro API documentation
             base_request = {

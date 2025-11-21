@@ -217,6 +217,20 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                 import_results['project'].get('id') or
                 import_results['project'].get('projectId')
             )
+        
+        # Extract company ID from the company we created/found earlier
+        # This avoids re-searching for the company (which has pagination limits)
+        project_company_id = None
+        if company:
+            project_company_id = (
+                company.get('id') or 
+                company.get('company_id') or 
+                company.get('client_id') or 
+                company.get('contact_id')
+            )
+            if project_company_id:
+                logger.debug(f"Will reuse company ID {project_company_id} for tasks")
+        
         tasks_to_import = transformed_data.get('tasks', [])
         
         # Apply test mode limit if specified
@@ -318,21 +332,29 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                         
                         # - company_name -> company_id (Integer)
                         # Note: Company is usually set at project level, but can be overridden at task level
+                        # First, try to use the company ID from the project (avoids re-searching with pagination issues)
                         company_name = task_data.get('company_name')
                         if company_name:
-                            try:
-                                company = scoro_client.find_company_by_name(company_name)
-                                if company:
-                                    company_id = company.get('id') or company.get('company_id') or company.get('client_id') or company.get('contact_id')
-                                    if company_id:
-                                        task_data['company_id'] = company_id
-                                        logger.debug(f"    Resolved company '{company_name}' to company_id: {company_id}")
+                            # Check if the task's company matches the project's company
+                            # If so, reuse the project_company_id to avoid re-searching (which has pagination limits)
+                            if project_company_id and company_name == transformed_data.get('company_name'):
+                                task_data['company_id'] = project_company_id
+                                logger.debug(f"    Reused project company_id: {project_company_id} for company '{company_name}'")
+                            else:
+                                # Different company than project - need to search for it
+                                try:
+                                    company_lookup = scoro_client.find_company_by_name(company_name)
+                                    if company_lookup:
+                                        company_id = company_lookup.get('id') or company_lookup.get('company_id') or company_lookup.get('client_id') or company_lookup.get('contact_id')
+                                        if company_id:
+                                            task_data['company_id'] = company_id
+                                            logger.debug(f"    Resolved company '{company_name}' to company_id: {company_id}")
+                                        else:
+                                            logger.warning(f"    Company '{company_name}' found but no ID available")
                                     else:
-                                        logger.warning(f"    Company '{company_name}' found but no ID available")
-                                else:
-                                    logger.warning(f"    Could not find company '{company_name}' in Scoro companies")
-                            except Exception as e:
-                                logger.warning(f"    Error resolving company '{company_name}': {e}")
+                                        logger.warning(f"    Could not find company '{company_name}' in Scoro companies")
+                                except Exception as e:
+                                    logger.warning(f"    Error resolving company '{company_name}': {e}")
                         
                         # Remove fields that Scoro might not accept (metadata and name-only fields)
                         # Exclude: internal tracking fields, name-only fields (already resolved to IDs), 

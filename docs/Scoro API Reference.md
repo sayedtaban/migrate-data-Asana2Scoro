@@ -610,3 +610,63 @@ Example response body:
         "custom_fields": null
     }
 }
+
+
+
+### Project phases
+This API endpoint supports requests authenticated by either user_token or apiKey.
+
+Name	Type	Description
+id	Integer	Project phase's ID.
+project_id	Integer	Project's ID.
+type	String	Possible values are "phase" and "milestone".
+title	String	Project phase's title.
+start_date	Date (YYYY-mm-dd)	Project phase's start date.
+end_date	Date (YYYY-mm-dd)	Project phase's end date.
+ordering	Integer	Project phase's order in list.
+quote_line_id	Integer	Related quote line ID.
+Available actions are
+list
+Request URL:
+https://#companyname#.scoro.com/api/v2/projectPhases/list
+Description:
+Getting list of project phases.
+Example request body:
+
+{
+    "apiKey": "API_hash",
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "request": {}
+}
+
+Example response body:
+
+{
+    "status": "OK",
+    "statusCode": 200,
+    "messages": null,
+    "data": [
+        {
+            "id": 1,
+            "project_id": 3,
+            "type": "phase",
+            "title": "Analysis",
+            "start_date": "2020-03-04",
+            "end_date": "2020-03-18",
+            "ordering": 0,
+            "quote_line_id": 0
+        },
+        {
+            "id": 2,
+            "project_id": 3,
+            "type": "phase",
+            "title": "Development",
+            "start_date": "2020-03-19",
+            "end_date": "2020-07-22",
+            "ordering": 1,
+            "quote_line_id": 0
+        }
+    ]
+}
+
