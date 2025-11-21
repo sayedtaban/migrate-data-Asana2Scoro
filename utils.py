@@ -29,7 +29,7 @@ if not os.path.exists(logs_dir):
 # Configure logging with UTF-8 encoding to handle special characters
 log_filename = os.path.join(logs_dir, f'migration_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler(log_filename, encoding='utf-8'),

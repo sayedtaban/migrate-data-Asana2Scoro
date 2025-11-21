@@ -12,7 +12,7 @@ from config import DEFAULT_BATCH_SIZE, TEST_MODE_MAX_TASKS
 
 def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: MigrationSummary, 
                      batch_size: int = DEFAULT_BATCH_SIZE, asana_client: Optional[AsanaClient] = None,
-                     max_tasks: Optional[int] = TEST_MODE_MAX_TASKS) -> Dict:
+                     max_tasks: Optional[int] = TEST_MODE_MAX_TASKS, asana_data: Optional[Dict] = None) -> Dict:
     """
     Import transformed data into Scoro with batch processing support
     
@@ -24,6 +24,7 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
         asana_client: Optional AsanaClient instance for fetching user details by GID
         max_tasks: Optional limit on number of tasks to migrate (for testing). 
                    Set to None to migrate all tasks. Defaults to TEST_MODE_MAX_TASKS from config.
+        asana_data: Optional original Asana export data containing users map for GID lookups
     
     Returns:
         Dictionary containing import results
@@ -392,24 +393,40 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                         # Extract author information
                                         created_by = story.get('created_by', {})
                                         author_name = None
+                                        author_email = None
+                                        user_gid = None
+                                        
                                         if isinstance(created_by, dict):
                                             author_name = created_by.get('name', '')
-                                            # If name is not available but gid is, fetch user details from Asana
-                                            if not author_name and asana_client is not None:
-                                                user_gid = created_by.get('gid')
-                                                if user_gid:
-                                                    try:
-                                                        user_details = asana_client.get_user_details(str(user_gid))
-                                                        if user_details:
-                                                            author_name = user_details.get('name', '')
-                                                            if author_name:
-                                                                logger.debug(f"      Fetched author name '{author_name}' from Asana for user GID: {user_gid}")
-                                                    except Exception as e:
-                                                        logger.debug(f"      Could not fetch user details for GID {user_gid}: {e}")
+                                            user_gid = created_by.get('gid')
+                                            
+                                            # If name is not available but gid is, look up user in Asana export users map first
+                                            if not author_name and user_gid and asana_data:
+                                                users_map = asana_data.get('users', {})
+                                                if user_gid in users_map:
+                                                    user_details = users_map[user_gid]
+                                                    author_name = user_details.get('name', '')
+                                                    author_email = user_details.get('email', '')
+                                                    if author_name:
+                                                        logger.debug(f"      Found author '{author_name}' (email: {author_email}) from users map for GID: {user_gid}")
+                                            
+                                            # If still no name and we have asana_client, try API fetch as fallback
+                                            if not author_name and user_gid and asana_client is not None:
+                                                try:
+                                                    user_details = asana_client.get_user_details(str(user_gid))
+                                                    if user_details:
+                                                        author_name = user_details.get('name', '')
+                                                        author_email = user_details.get('email', '')
+                                                        if author_name:
+                                                            logger.debug(f"      Fetched author name '{author_name}' from Asana API for user GID: {user_gid}")
+                                                except Exception as e:
+                                                    logger.debug(f"      Could not fetch user details for GID {user_gid}: {e}")
                                         elif hasattr(created_by, 'name'):
                                             author_name = created_by.name
+                                            if hasattr(created_by, 'gid'):
+                                                user_gid = created_by.gid
                                         
-                                        # Resolve user_id from author name
+                                        # Resolve user_id from author name or email
                                         user_id = None
                                         if author_name:
                                             try:
@@ -421,21 +438,22 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                             except Exception as e:
                                                 logger.debug(f"      Could not resolve user '{author_name}': {e}")
                                         
-                                        # If user_id not found, try to find a default user (Tom Sanpakit)
-                                        if user_id is None:
+                                        # If user_id not found by name, try email
+                                        if user_id is None and author_email:
                                             try:
-                                                default_user = scoro_client.find_user_by_name('Tom Sanpakit')
-                                                if default_user:
-                                                    user_id = default_user.get('id')
+                                                user = scoro_client.find_user_by_name(author_email)
+                                                if user:
+                                                    user_id = user.get('id')
                                                     if user_id is not None:
-                                                        logger.debug(f"      Using default user (Tom Sanpakit) for comment, user_id: {user_id}")
+                                                        logger.debug(f"      Resolved comment author by email '{author_email}' to user_id: {user_id}")
                                             except Exception as e:
-                                                logger.debug(f"      Could not find default user: {e}")
+                                                logger.debug(f"      Could not resolve user by email '{author_email}': {e}")
                                         
-                                        # Skip comment if no user_id available (API requires user_id with apiKey)
-                                        # Also ensure user_id is a valid positive integer
+                                        # Skip comment if user_id is not available or invalid
+                                        # API requires user_id with apiKey, and it must be a valid positive integer
                                         if user_id is None or not isinstance(user_id, int) or user_id <= 0:
-                                            logger.warning(f"      ⚠ Skipping comment: Invalid user_id ({user_id}) for author '{author_name or 'Unknown'}'")
+                                            author_info = author_name or author_email or (f"GID: {user_gid}" if user_gid else "Unknown")
+                                            logger.warning(f"      ⚠ Skipping comment: Could not resolve comment author '{author_info}' in Scoro (user_id: {user_id}). Skipping to avoid incorrect attribution.")
                                             comments_failed += 1
                                             continue
                                         

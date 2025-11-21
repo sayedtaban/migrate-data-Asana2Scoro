@@ -126,7 +126,7 @@ def main():
         logger.info("-"*60)
         
         logger.info("\nImporting to Scoro...")
-        import_results = import_to_scoro(scoro_client, transformed_data, summary)
+        import_results = import_to_scoro(scoro_client, transformed_data, summary, asana_data=asana_data)
         logger.info("✓ Import completed")
         
         # Print summary

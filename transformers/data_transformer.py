@@ -84,29 +84,75 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                     logger.info(f"  Found company name from task custom field: {company_name}")
                     break
         
-        # Extract PM (Project Manager) name from tasks
-        # Check tasks for PM Name custom field to determine the project manager
+        # Extract Project Manager/Owner from Asana project
+        # Priority: 1) Project owner field (if in users map - i.e., team member), 2) Task custom fields (PM Name)
+        # Note: Asana project owner might be a client/external user not in the team users map
         pm_name = None
-        tasks = asana_data.get('tasks', [])
-        pm_counts = {}  # Track PM name frequency
+        users_map = asana_data.get('users', {})
         
-        # Check all tasks for PM Name
-        for task in tasks:
-            task_pm = extract_custom_field_value(task, 'PM Name') or extract_custom_field_value(task, 'PM')
-            if task_pm and task_pm.strip():
-                task_pm = task_pm.strip()
-                # Validate and normalize the PM name
-                validated_pm = validate_user(task_pm, default_to_tom=False)
-                if validated_pm:  # Only count if validation returns a valid name
-                    pm_counts[validated_pm] = pm_counts.get(validated_pm, 0) + 1
+        # First, try to get project owner from project.owner field
+        project_owner = project.get('owner')
+        owner_gid = None
+        if project_owner:
+            if isinstance(project_owner, dict):
+                owner_gid = project_owner.get('gid')
+            elif hasattr(project_owner, 'gid'):
+                owner_gid = project_owner.gid
+            
+            # Look up owner name in users map (only contains team members, not external/client users)
+            if owner_gid and owner_gid in users_map:
+                owner_details = users_map[owner_gid]
+                pm_name = owner_details.get('name', '')
+                if pm_name:
+                    logger.info(f"  Found project owner from project.owner field: {pm_name} (GID: {owner_gid})")
+            elif owner_gid:
+                logger.info(f"  Project owner GID {owner_gid} found but not in team users map (likely client/external user)")
         
-        # Determine the most common PM, or use the first one found
-        if pm_counts:
-            # Get the PM with the highest count
-            pm_name = max(pm_counts.items(), key=lambda x: x[1])[0]
-            logger.info(f"  Found PM from task custom fields: {pm_name} (appears in {pm_counts[pm_name]} tasks)")
-        else:
-            logger.debug(f"  No PM name found in task custom fields")
+        # If no team member owner found from project field, fall back to task custom fields
+        # This finds the actual Halstead PM managing the project
+        if not pm_name:
+            tasks = asana_data.get('tasks', [])
+            pm_counts = {}  # Track PM name frequency
+            
+            # Check all tasks for PM Name custom field
+            for task in tasks:
+                task_pm = extract_custom_field_value(task, 'PM Name') or extract_custom_field_value(task, 'PM')
+                if task_pm and task_pm.strip():
+                    task_pm = task_pm.strip()
+                    # Validate and normalize the PM name
+                    validated_pm = validate_user(task_pm, default_to_tom=False)
+                    if validated_pm:  # Only count if validation returns a valid name
+                        pm_counts[validated_pm] = pm_counts.get(validated_pm, 0) + 1
+            
+            # Determine the most common PM, or use the first one found
+            if pm_counts:
+                # Get the PM with the highest count
+                pm_name = max(pm_counts.items(), key=lambda x: x[1])[0]
+                logger.info(f"  Found PM from task custom fields: {pm_name} (appears in {pm_counts[pm_name]} tasks)")
+            else:
+                logger.debug(f"  No PM name found in project owner or task custom fields")
+        
+        # Extract project members for reference
+        project_members = []
+        members_list = project.get('members', [])
+        if members_list:
+            for member in members_list:
+                member_gid = None
+                if isinstance(member, dict):
+                    member_gid = member.get('gid')
+                elif hasattr(member, 'gid'):
+                    member_gid = member.gid
+                
+                # Look up member name in users map
+                if member_gid and member_gid in users_map:
+                    member_details = users_map[member_gid]
+                    member_name = member_details.get('name', '')
+                    if member_name and member_name not in project_members:
+                        project_members.append(member_name)
+            
+            if project_members:
+                logger.info(f"  Found {len(project_members)} project members: {', '.join(project_members[:5])}" + 
+                           (f" and {len(project_members) - 5} more" if len(project_members) > 5 else ""))
         
         # Transform project with comprehensive fields matching Scoro API format
         # Reference: Scoro API Reference.md - Projects API fields
@@ -122,11 +168,18 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
         if pm_name:
             transformed_project['manager_name'] = pm_name
         
+        # Add project members for reference
+        if project_members:
+            transformed_project['members'] = project_members
+        
         # Add project metadata matching Scoro API format
         # Map Asana "Project Overview" (stored in 'notes' field) to Scoro project description/details field
         project_overview = project.get('overview') or project.get('notes') or project.get('description')
         if project_overview:
-            transformed_project['description'] = re.sub(r'<[^>]+>', '', str(project_overview))
+            project_description = re.sub(r'<[^>]+>', '', str(project_overview))
+            # Convert newlines to HTML line breaks for Scoro API
+            project_description = project_description.replace('\n', '<br>')
+            transformed_project['description'] = project_description
         
         # Map dates to Scoro API format (date field for start, deadline for due)
         if project.get('start_on') or project.get('created_at'):
@@ -171,7 +224,9 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
         if pm_name:
             logger.info(f"  PM/Manager: {pm_name}")
         else:
-            logger.info(f"  PM/Manager: Not found in task custom fields")
+            logger.info(f"  PM/Manager: Not found")
+        if project_members:
+            logger.info(f"  Project members: {len(project_members)} member(s)")
         
         # Transform milestones
         milestones_to_transform = asana_data.get('milestones', [])
@@ -193,7 +248,10 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                     transformed_milestone['due_date'] = milestone_due
                 
                 if milestone.get('notes'):
-                    transformed_milestone['description'] = re.sub(r'<[^>]+>', '', str(milestone.get('notes', '')))
+                    milestone_description = re.sub(r'<[^>]+>', '', str(milestone.get('notes', '')))
+                    # Convert newlines to HTML line breaks for Scoro API
+                    milestone_description = milestone_description.replace('\n', '<br>')
+                    transformed_milestone['description'] = milestone_description
                 
                 transformed_data['milestones'].append(transformed_milestone)
             logger.info(f"✓ Transformed {len(transformed_data['milestones'])} milestones")
@@ -355,19 +413,16 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             project_phase = smart_map_phase(title, activity_type, section)
             
             # Map users
-            # Project owner (responsible) comes from PM Name custom field
-            responsible = validate_user(pm_name, default_to_tom=True)
+            # Note: Project Manager (PM Name) is already handled at project level via manager_id
+            # For task-level fields:
+            # - owner_id should be the TASK ASSIGNEE (the person responsible for THIS task)
+            # - related_users should include followers/collaborators
             
-            # Task assigned_to comes from task assignee - should be different from project owner
-            assigned_to = validate_user(assignee, default_to_tom=False)
+            # Task owner_id comes from task assignee (the person assigned to this specific task)
+            task_owner = validate_user(assignee, default_to_tom=False)
             
-            # Ensure project owner and task assignee are different
-            # If they're the same, it means the task assignee should be used for related_users
-            # and project owner should remain as owner_id
-            if responsible and assigned_to and responsible == assigned_to:
-                # They're the same - this is OK, but log it for visibility
-                logger.debug(f"    Note: Project owner and task assignee are the same: {responsible}")
-                # Keep both as-is - owner_id will be responsible, related_users will include assigned_to
+            # PM Name is for reference only (project manager is set at project level)
+            pm_for_reference = validate_user(pm_name, default_to_tom=True) if pm_name else None
             
             # Get estimated/actual time (if available in custom fields)
             # NOTE: Must extract this BEFORE setting completion status because Scoro requires
@@ -433,6 +488,9 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                 if description:
                     # Clean HTML if present
                     description = re.sub(r'<[^>]+>', '', description)
+                    # Convert newlines to HTML line breaks for Scoro API
+                    # Scoro expects HTML formatting for line breaks in descriptions
+                    description = description.replace('\n', '<br>')
                 else:
                     description = None
             else:
@@ -554,41 +612,38 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                 transformed_task['datetime_completed'] = datetime_completed  # Scoro API uses 'datetime_completed' (ISO8601)
             if priority_id:
                 transformed_task['priority_id'] = priority_id  # Scoro API uses 'priority_id' (Integer: 1=high, 2=normal, 3=low)
-            # Set owner_id (project owner) - comes from PM Name custom field
-            # This is the project manager, same for all tasks in the project
-            if responsible:
-                transformed_task['owner_name'] = responsible  # Store name, importer will resolve to owner_id
-                logger.debug(f"    Task owner (project manager): {responsible}")
             
-            # Set related_users (task assignee and followers) - should be different from owner
-            # These are task-specific users (assignee and followers), different per task
+            # Set owner_id (task assignee) - the person responsible for THIS specific task
+            # According to Scoro API: owner_id is "User ID of the user that is responsible for the event"
+            # This should be the task assignee, NOT the project manager
+            if task_owner:
+                transformed_task['owner_name'] = task_owner  # Store name, importer will resolve to owner_id
+                logger.debug(f"    Task assignee (owner_id): {task_owner}")
+            
+            # Set related_users (followers/collaborators)
+            # These are additional people following/collaborating on this task
             related_users_list = []
-            if assigned_to:
-                # Add assignee to related_users
-                related_users_list.append(assigned_to)
-                logger.debug(f"    Task assignee: {assigned_to}")
             
-            # Add followers to related_users (if not already included)
+            # Add followers to related_users
             if follower_names:
                 for follower_name in follower_names:
                     validated_follower = validate_user(follower_name, default_to_tom=False)
-                    if validated_follower and validated_follower not in related_users_list:
-                        related_users_list.append(validated_follower)
-                        logger.debug(f"    Task follower: {validated_follower}")
+                    if validated_follower:
+                        # Optionally exclude the task owner from related_users to avoid duplication
+                        # (since owner_id already represents the assignee)
+                        if validated_follower != task_owner or not task_owner:
+                            if validated_follower not in related_users_list:
+                                related_users_list.append(validated_follower)
+                                logger.debug(f"    Task follower: {validated_follower}")
             
             # Store related_users as a list (importer will resolve each name to user_id)
             if related_users_list:
                 transformed_task['assigned_to_name'] = related_users_list  # Store as list, importer will resolve to related_users array
-                logger.debug(f"    Task related_users: {related_users_list}")
-            else:
-                logger.debug(f"    No related_users for this task")
+                logger.debug(f"    Task related_users (followers): {related_users_list}")
             
-            # Log if owner and related_users overlap (they should be different)
-            if responsible and related_users_list:
-                if responsible in related_users_list:
-                    logger.debug(f"    ⚠ Note: Project owner '{responsible}' is also in related_users - this is OK but they serve different purposes")
-                else:
-                    logger.debug(f"    ✓ Project owner '{responsible}' is different from related_users {related_users_list}")
+            # Log project manager for reference (already set at project level)
+            if pm_for_reference:
+                logger.debug(f"    Project manager (set at project level): {pm_for_reference}")
             if project_name:
                 transformed_task['project_name'] = project_name  # Store name, importer will resolve to project_id
             if project_phase:
