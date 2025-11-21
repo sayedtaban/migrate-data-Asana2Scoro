@@ -18,7 +18,7 @@ RETRY_BACKOFF = 2  # Exponential backoff multiplier
 DEFAULT_BATCH_SIZE = 50
 
 # Test mode configuration - limit number of tasks to migrate (set to None to migrate all tasks)
-TEST_MODE_MAX_TASKS = 5  # Limit to 20 tasks for testing
+TEST_MODE_MAX_TASKS = None  # Set to None for PRODUCTION - migrate all tasks
 
 # Date cutoff for task filtering
 CUTOFF_DATE = datetime(2025, 7, 1)  # Naive datetime for comparison
@@ -50,4 +50,24 @@ USER_MAPPING = {
 ENV_ASANA_ACCESS_TOKEN = 'ASANA_ACCESS_TOKEN'
 ENV_SCORO_API_KEY = 'SCORO_API_KEY'
 ENV_SCORO_COMPANY_NAME = 'SCORO_COMPANY_NAME'
+
+# Projects to migrate
+# Option 1: Use project GIDs (faster, no search needed)
+PROJECT_GIDS = [
+    "1207816263671761",  # Example project 1
+    # Add more project GIDs here
+]
+
+# Option 2: Use project names (will search for projects by name)
+PROJECT_NAMES = [
+    # "Van Zeeland Nursery & Landscape",  # Example project 1
+    # "Another Project Name",  # Example project 2
+    # Add more project names here
+]
+
+# Workspace GID (required for Asana API)
+WORKSPACE_GID = "10447183158961"
+
+# Migration mode: use 'gids' to migrate by GID list, 'names' to migrate by name list
+MIGRATION_MODE = 'gids'  # Options: 'gids' or 'names'
 
