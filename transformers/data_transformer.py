@@ -805,26 +805,19 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                 transformed_task['owner_name'] = task_owner  # Store name, importer will resolve to owner_id
                 logger.debug(f"    Task assignee (owner_id): {task_owner}")
             
-            # Set related_users (followers/collaborators)
-            # These are additional people following/collaborating on this task
-            related_users_list = []
+            # Set related_users - ONLY the primary assignee should be in related_users
+            # According to Scoro API: related_users is "Array of user IDs that the task is assigned to"
+            # This should contain ONLY the assignee, NOT followers/collaborators
+            # Followers/collaborators are NOT supported as assignees in Scoro
+            if task_owner:
+                # Only the primary assignee goes into related_users
+                transformed_task['assigned_to_name'] = [task_owner]  # Store as list, importer will resolve to related_users array
+                logger.debug(f"    Task related_users (assignee only): {task_owner}")
             
-            # Add followers to related_users
+            # Note: Followers/collaborators from Asana are NOT migrated to Scoro
+            # Scoro's related_users field is for assignees only, not followers
             if follower_names:
-                for follower_name in follower_names:
-                    validated_follower = validate_user(follower_name, default_to_tom=False)
-                    if validated_follower:
-                        # Optionally exclude the task owner from related_users to avoid duplication
-                        # (since owner_id already represents the assignee)
-                        if validated_follower != task_owner or not task_owner:
-                            if validated_follower not in related_users_list:
-                                related_users_list.append(validated_follower)
-                                logger.debug(f"    Task follower: {validated_follower}")
-            
-            # Store related_users as a list (importer will resolve each name to user_id)
-            if related_users_list:
-                transformed_task['assigned_to_name'] = related_users_list  # Store as list, importer will resolve to related_users array
-                logger.debug(f"    Task related_users (followers): {related_users_list}")
+                logger.debug(f"    Task followers (not migrated to Scoro): {follower_names}")
             
             # Log project manager for reference (already set at project level)
             if pm_for_reference:

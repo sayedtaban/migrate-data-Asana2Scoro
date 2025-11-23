@@ -345,6 +345,8 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                 logger.warning(f"    Error resolving owner '{owner_name}': {e}")
                         
                         # - assigned_to_name -> related_users (Array of user IDs)
+                        # NOTE: assigned_to_name should contain ONLY the primary assignee (not followers)
+                        # Scoro's related_users field is for assignees only, not followers/collaborators
                         assigned_to_name = task_data.get('assigned_to_name')
                         if assigned_to_name:
                             try:
@@ -361,17 +363,17 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                         if user_id:
                                             related_user_ids.append(user_id)
                                             user_full_name = user.get('full_name') or f"{user.get('firstname', '')} {user.get('lastname', '')}".strip()
-                                            logger.debug(f"    Resolved assigned user '{name}' to user_id: {user_id} ({user_full_name})")
+                                            logger.debug(f"    Resolved assignee '{name}' to user_id: {user_id} ({user_full_name})")
                                         else:
-                                            logger.warning(f"    Assigned user '{name}' found but no ID available")
+                                            logger.warning(f"    Assignee '{name}' found but no ID available")
                                     else:
-                                        logger.warning(f"    Could not find assigned user '{name}' in Scoro users")
+                                        logger.warning(f"    Could not find assignee '{name}' in Scoro users")
                                 
                                 if related_user_ids:
                                     task_data['related_users'] = related_user_ids
-                                    logger.debug(f"    Set related_users: {related_user_ids}")
+                                    logger.debug(f"    Set related_users (assignees only): {related_user_ids}")
                             except Exception as e:
-                                logger.warning(f"    Error resolving assigned users '{assigned_to_name}': {e}")
+                                logger.warning(f"    Error resolving assignees '{assigned_to_name}': {e}")
                         
                         # - project_phase_name -> project_phase_id (Integer)
                         project_phase_name = task_data.get('project_phase_name')
