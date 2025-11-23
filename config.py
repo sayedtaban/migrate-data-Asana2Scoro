@@ -18,7 +18,7 @@ RETRY_BACKOFF = 2  # Exponential backoff multiplier
 DEFAULT_BATCH_SIZE = 50
 
 # Test mode configuration - limit number of tasks to migrate (set to None to migrate all tasks)
-TEST_MODE_MAX_TASKS = 4  # Set to None for PRODUCTION - migrate all tasks
+TEST_MODE_MAX_TASKS = 20  # Set to None for PRODUCTION - migrate all tasks
 
 # Date cutoff for task filtering
 CUTOFF_DATE = datetime(2025, 7, 1)  # Naive datetime for comparison

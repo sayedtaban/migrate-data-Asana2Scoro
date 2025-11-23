@@ -43,6 +43,7 @@ class AsanaClient:
         self.tasks_api = asana.TasksApi(self.api_client)
         self.sections_api = asana.SectionsApi(self.api_client)
         self.users_api = asana.UsersApi(self.api_client)
+        self.time_tracking_entries_api = asana.TimeTrackingEntriesApi(self.api_client)
         
         logger.info("Asana client initialized")
     
@@ -267,11 +268,12 @@ class AsanaClient:
         try:
             # Comprehensive field list for detailed task information
             opt_fields = [
-                'gid', 'name', 'notes', 'html_notes', 'due_on', 'due_at', 'start_on', 'start_at',
-                'assignee', 'assignee_status', 'completed', 'completed_at', 'created_at', 'modified_at',
+                'gid', 'name', 'actual_time_minutes', 'notes', 'html_notes', 'due_on', 'due_at', 'start_on', 'start_at',
+                'assignee', 'assignee_status', 'completed', 'completed_at', 'created_at', 'modified_at', 'created_by', 'completed_by',
                 'custom_fields', 'parent', 'memberships', 'tags', 'followers', 'dependencies',
                 'dependents', 'num_subtasks', 'num_likes', 'liked', 'resource_subtype',
                 'attachments', 'stories', 'subtasks', 'workspace', 'projects', 'permalink_url'
+                'approval_status','assignee','assignee.name','assignee_section','assignee_section.name', 'completed_by.name'
             ]
             
             opts = {
@@ -510,4 +512,40 @@ class AsanaClient:
         except Exception as e:
             logger.warning(f"Error retrieving user details for GID {user_gid}: {e}")
             return None
+    
+    @retry_with_backoff()
+    @rate_limit
+    def get_time_tracking_entries(self, task_gid: str) -> List[Dict]:
+        """
+        Get all time tracking entries for a task
+        
+        Args:
+            task_gid: Task GID
+        
+        Returns:
+            List of time tracking entry dictionaries
+        """
+        try:
+            opts = {
+                'limit': 50,
+                'opt_fields': 'attributable_to,attributable_to.name,created_by,created_at,created_by.name,duration_minutes,entered_on,offset,path,uri'
+            }
+            entries = self.time_tracking_entries_api.get_time_tracking_entries_for_task(task_gid, opts)
+            entry_list = []
+            for entry in entries:
+                entry_dict = entry.to_dict() if hasattr(entry, 'to_dict') else dict(entry)
+                entry_list.append(entry_dict)
+            logger.debug(f"Retrieved {len(entry_list)} time tracking entries for task {task_gid}")
+            return entry_list
+        except ApiException as e:
+            status = e.status if hasattr(e, 'status') else 'Unknown'
+            if status == 401:
+                error_msg = "Authentication failed. Please check your ASANA_ACCESS_TOKEN."
+                logger.error(error_msg)
+                raise ValueError(error_msg) from e
+            logger.warning(f"Could not retrieve time tracking entries for task {task_gid} (Status {status}): {e}")
+            return []
+        except Exception as e:
+            logger.warning(f"Error retrieving time tracking entries for task {task_gid}: {e}")
+            return []
 

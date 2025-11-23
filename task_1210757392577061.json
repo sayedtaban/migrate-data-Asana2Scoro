@@ -1,0 +1,2427 @@
+{
+  "gid": "1210757392577061",
+  "actual_time_minutes": 88,
+  "assignee": {
+    "gid": "1205787985968620",
+    "name": "Elizabeth Wasserman"
+  },
+  "assignee_status": "inbox",
+  "attachments": [],
+  "completed": true,
+  "completed_at": "2025-08-06T18:37:17.903Z",
+  "completed_by": {
+    "gid": "1205787985968620",
+    "name": "Elizabeth Wasserman"
+  },
+  "created_at": "2025-07-09T22:21:54.958Z",
+  "created_by": {
+    "gid": "1210209044110500",
+    "resource_type": "user"
+  },
+  "custom_fields": [
+    {
+      "gid": "1201668258507405",
+      "enabled": true,
+      "enum_options": [
+        {
+          "gid": "1201681985340070",
+          "color": "red",
+          "enabled": true,
+          "name": "Client Template",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201955253832491",
+          "color": "hot-pink",
+          "enabled": true,
+          "name": "1st Impressions",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204252743445911",
+          "color": "hot-pink",
+          "enabled": true,
+          "name": "Ahronian Landscaping & Design",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201959412719299",
+          "color": "pink",
+          "enabled": true,
+          "name": "Albert Pools",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204320355684292",
+          "color": "magenta",
+          "enabled": true,
+          "name": "Allied Landscape Supply",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209226402162469",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "Alt's Operation",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206629915903119",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Ambler",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201994768182004",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Antonucci",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206107193095762",
+          "color": "blue",
+          "enabled": true,
+          "name": "Apple LandScape Design",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201994651101464",
+          "color": "cool-gray",
+          "enabled": true,
+          "name": "ARJ",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1210130108675206",
+          "color": "red",
+          "enabled": true,
+          "name": "Artistic Landscaping Inc",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206630600656801",
+          "color": "pink",
+          "enabled": true,
+          "name": "Atlantic Ridge",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209815797411087",
+          "color": "cool-gray",
+          "enabled": true,
+          "name": "Aqua Technics",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1208620630777780",
+          "color": "yellow",
+          "enabled": true,
+          "name": "BayTerra",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204073867587890",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "Bedard Tree Care Associates",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201994661936779",
+          "color": "none",
+          "enabled": true,
+          "name": "Bellwood",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209254301754660",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Big Tex Stone",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203848709691764",
+          "color": "indigo",
+          "enabled": true,
+          "name": "Birch Hill",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1208170238991368",
+          "color": "aqua",
+          "enabled": true,
+          "name": "Blue Ribbon Outdoor",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1210835682960136",
+          "color": "cool-gray",
+          "enabled": true,
+          "name": "Brandywine Designs",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202056209362791",
+          "color": "green",
+          "enabled": true,
+          "name": "Brookwood",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201995516099535",
+          "color": "indigo",
+          "enabled": true,
+          "name": "BTS",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204189398402096",
+          "color": "none",
+          "enabled": true,
+          "name": "BUILT.",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203848709691763",
+          "color": "pink",
+          "enabled": true,
+          "name": "C&S Landscaping",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207132137388281",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Carson Outdoor Living",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203895673284663",
+          "color": "purple",
+          "enabled": true,
+          "name": "Cedar Hills Landscaping",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204073005342020",
+          "color": "pink",
+          "enabled": true,
+          "name": "Clay Creek Outdoor Living",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203608854079472",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Commonwealth Curb Appeal",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202005268009823",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Country Lawn Care",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206395774519908",
+          "color": "magenta",
+          "enabled": true,
+          "name": "Creative Hardscapes",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207287947963568",
+          "color": "blue",
+          "enabled": true,
+          "name": "Daybreaker Landscapes",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206710006438732",
+          "color": "purple",
+          "enabled": true,
+          "name": "DeBartolo",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202029704111631",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Decrascape",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204073005342019",
+          "color": "blue",
+          "enabled": true,
+          "name": "Down to Earth Landscaping",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207469648237663",
+          "color": "magenta",
+          "enabled": true,
+          "name": "Duke's",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204073919181635",
+          "color": "green",
+          "enabled": true,
+          "name": "Dulemba Landscaping",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204958938140684",
+          "color": "blue",
+          "enabled": true,
+          "name": "Dyna-Mist",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201721317816228",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "E-Landscaping",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206837904848536",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "Earthly Possibilities",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1205790232160724",
+          "color": "hot-pink",
+          "enabled": true,
+          "name": "East Coast Irrigation",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211068760799667",
+          "color": "red",
+          "enabled": true,
+          "name": "Element Outdoor Living",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202029833281397",
+          "color": "cool-gray",
+          "enabled": true,
+          "name": "EP Jansens",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211396534560375",
+          "color": "green",
+          "enabled": true,
+          "name": "Ethoscapes",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202600641687611",
+          "color": "cool-gray",
+          "enabled": true,
+          "name": "Evolve",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201871756698843",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Exterior Land Development",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209020271188497",
+          "color": "red",
+          "enabled": true,
+          "name": "Exscape Designs",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1210873770999078",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Exscape Group",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202018490415213",
+          "color": "blue",
+          "enabled": true,
+          "name": "Fein",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202029777387301",
+          "color": "green",
+          "enabled": true,
+          "name": "Figgins",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202029865791819",
+          "color": "red",
+          "enabled": true,
+          "name": "Firesky",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206355653032695",
+          "color": "green",
+          "enabled": true,
+          "name": "Flora Landscape Contractors",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209020318285535",
+          "color": "indigo",
+          "enabled": true,
+          "name": "Foremost Fence",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203848709691765",
+          "color": "aqua",
+          "enabled": true,
+          "name": "Gallucci Landscaping",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206770915611254",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Gardens of the World",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201959699251877",
+          "color": "cool-gray",
+          "enabled": true,
+          "name": "Gary Duff",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202806896821728",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "GDP",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209563258576139",
+          "color": "aqua",
+          "enabled": true,
+          "name": "Genesee Valley",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202049058012975",
+          "color": "blue",
+          "enabled": true,
+          "name": "GLC",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202552603916126",
+          "color": "yellow",
+          "enabled": true,
+          "name": "GoldGlo",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202022367756429",
+          "color": "indigo",
+          "enabled": true,
+          "name": "Gomes",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201727954656538",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Grandin Farms",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204936838282478",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "Grandscapes",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201845577788909",
+          "color": "orange",
+          "enabled": true,
+          "name": "Great Outdoors",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211942042587196",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "Greener Horizon",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211028488327394",
+          "color": "green",
+          "enabled": true,
+          "name": "Green Impressions",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203798209474596",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "GreenNature",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204428399285030",
+          "color": "indigo",
+          "enabled": true,
+          "name": "Ground & Garden",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202004893655363",
+          "color": "green",
+          "enabled": true,
+          "name": "Grow",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207468355154686",
+          "color": "none",
+          "enabled": true,
+          "name": "Halstead",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203028721863289",
+          "color": "red",
+          "enabled": true,
+          "name": "Hardscape Contractors",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202103750163676",
+          "color": "indigo",
+          "enabled": true,
+          "name": "Hardscape Kings",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209372990403308",
+          "color": "red",
+          "enabled": true,
+          "name": "Heritage Landscapes",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202199407861332",
+          "color": "magenta",
+          "enabled": true,
+          "name": "Hermes",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1205370187424677",
+          "color": "pink",
+          "enabled": true,
+          "name": "Hillman",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1208886574239480",
+          "color": "red",
+          "enabled": true,
+          "name": "Hi-Way Concrete",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204845898675584",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Hiner Outdoor Living",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207373934254947",
+          "color": "red",
+          "enabled": true,
+          "name": "Hively",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204073005342018",
+          "color": "hot-pink",
+          "enabled": true,
+          "name": "Hollandia Outdoor Living Concepts",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209410092480785",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "HomeTurf Landscapes",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201997996889879",
+          "color": "green",
+          "enabled": true,
+          "name": "ICPI",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203200553734692",
+          "color": "none",
+          "enabled": true,
+          "name": "Indresano Corporation",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202066089065239",
+          "color": "red",
+          "enabled": true,
+          "name": "Insite",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1208620630777781",
+          "color": "green",
+          "enabled": true,
+          "name": "Integrity",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207132137388282",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "J & J Landscape Management",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201962910031190",
+          "color": "green",
+          "enabled": true,
+          "name": "Jan Fence - My Fence",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202022526880926",
+          "color": "yellow",
+          "enabled": true,
+          "name": "JFD",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201806244964006",
+          "color": "purple",
+          "enabled": true,
+          "name": "Joseph Bulfamante",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202066315632381",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Kairos",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206618379711806",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Kamin",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1205226897415043",
+          "color": "orange",
+          "enabled": true,
+          "name": "Kennedy Blue Mountain Stone",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1205752292716282",
+          "color": "green",
+          "enabled": true,
+          "name": "King Green",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203302095582805",
+          "color": "magenta",
+          "enabled": true,
+          "name": "Landmark",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202067125412411",
+          "color": "hot-pink",
+          "enabled": true,
+          "name": "Landscape Architecture",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204183562043956",
+          "color": "purple",
+          "enabled": true,
+          "name": "Laughlin Landscape and Design",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209020374858588",
+          "color": "aqua",
+          "enabled": true,
+          "name": "Lawn & Order",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1210231747581585",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Lawn Control Center",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202600622942443",
+          "color": "pink",
+          "enabled": true,
+          "name": "Legacy",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202066306352149",
+          "color": "cool-gray",
+          "enabled": true,
+          "name": "Lehigh",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202033518677538",
+          "color": "magenta",
+          "enabled": true,
+          "name": "Local Life",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204428150714626",
+          "color": "red",
+          "enabled": true,
+          "name": "M.A.B Landscape Group",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211850305954389",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "McKenzie",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203949194621077",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "Magic Landscaping",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201668258507412",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Maplehurst",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202067889956332",
+          "color": "cool-gray",
+          "enabled": true,
+          "name": "Montanos",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204073005342017",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Munro Landscaping",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202104648602030",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Nature's Accents",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202116074388381",
+          "color": "cool-gray",
+          "enabled": true,
+          "name": "Niedergeses",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211028488327395",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "North East Landscaping Services",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202104651534950",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "Northern Lights",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203889234380306",
+          "color": "orange",
+          "enabled": true,
+          "name": "Oakhill Landscaping",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207346801385138",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Ohio Valley Landscaping & Nursery",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209102561867390",
+          "color": "purple",
+          "enabled": true,
+          "name": "Oneill Landscape Group",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203186510041904",
+          "color": "purple",
+          "enabled": true,
+          "name": "Outdoor Design by Oz",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1210479076850313",
+          "color": "green",
+          "enabled": true,
+          "name": "Paramount Greens",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211174462841479",
+          "color": "cool-gray",
+          "enabled": true,
+          "name": "Perfect Pavers",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1205361687166961",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Pine Ridge",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202104697608991",
+          "color": "blue",
+          "enabled": true,
+          "name": "Platinum",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206523810319422",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Prairie Path",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201760355844391",
+          "color": "aqua",
+          "enabled": true,
+          "name": "Premier Landscaping Inc",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206395933363855",
+          "color": "purple",
+          "enabled": true,
+          "name": "Premier Pavers",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202104750608012",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Premier RI",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202125289183716",
+          "color": "none",
+          "enabled": true,
+          "name": "Property Worx",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203872240956246",
+          "color": "pink",
+          "enabled": true,
+          "name": "ProScape Lawn & Landscape",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201994626125376",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Proscapes",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206837960759016",
+          "color": "pink",
+          "enabled": true,
+          "name": "PureModern",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201998320146567",
+          "color": "purple",
+          "enabled": true,
+          "name": "Purgreen",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202002828258258",
+          "color": "red",
+          "enabled": true,
+          "name": "Red Rock",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202553150799233",
+          "color": "purple",
+          "enabled": true,
+          "name": "Rine",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1210891840979116",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Rising Tide Landscapes",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202664515263672",
+          "color": "blue",
+          "enabled": true,
+          "name": "Riverside",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209584401701474",
+          "color": "green",
+          "enabled": true,
+          "name": "Riverview Co.",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206396067948132",
+          "color": "pink",
+          "enabled": true,
+          "name": "Roche",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203028721863243",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Rock Hardscapes",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202475371678911",
+          "color": "green",
+          "enabled": true,
+          "name": "Rutland Nurseries",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201997777317825",
+          "color": "magenta",
+          "enabled": true,
+          "name": "Rutland Turf Care",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209670289255351",
+          "color": "magenta",
+          "enabled": true,
+          "name": "Ryan Lawn",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203452223186968",
+          "color": "aqua",
+          "enabled": true,
+          "name": "Santucci",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202502180821697",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Sammarco Stone",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201721668625789",
+          "color": "green",
+          "enabled": true,
+          "name": "Second Nature",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202062195762880",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "Shades of Green",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202070939561192",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Sitescapes",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1210130108675207",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "Southern Classic Landscape Management, Inc",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209217060174777",
+          "color": "green",
+          "enabled": true,
+          "name": "Starbucks",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202099998115759",
+          "color": "pink",
+          "enabled": true,
+          "name": "Stepanek Landscaping",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1205160029380487",
+          "color": "magenta",
+          "enabled": true,
+          "name": "Stockman Landscape",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209983843374718",
+          "color": "cool-gray",
+          "enabled": true,
+          "name": "The Stone Man",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211028488327396",
+          "color": "green",
+          "enabled": true,
+          "name": "Stuarts Landscaping & Garden Center",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204845769560031",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Summit Landscape",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202437701922368",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Superior Hardscapes",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1208811178012760",
+          "color": "none",
+          "enabled": true,
+          "name": "Swimm Pools",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201805934692631",
+          "color": "indigo",
+          "enabled": true,
+          "name": "Teddy's",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206395923972593",
+          "color": "yellow",
+          "enabled": true,
+          "name": "TKC",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206125100243819",
+          "color": "pink",
+          "enabled": true,
+          "name": "Top Rock Design",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201788648894239",
+          "color": "blue",
+          "enabled": true,
+          "name": "Tournoux",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202008416292870",
+          "color": "orange",
+          "enabled": true,
+          "name": "Town & Country",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201944911322649",
+          "color": "magenta",
+          "enabled": true,
+          "name": "Troy clogg",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203924631868167",
+          "color": "magenta",
+          "enabled": true,
+          "name": "The Master's Lawn Care",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202011331407798",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Tunzi",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201976741869434",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Unilock",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203232860358469",
+          "color": "green",
+          "enabled": true,
+          "name": "Valley Deck & Patio",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204249769336753",
+          "color": "green",
+          "enabled": true,
+          "name": "Valley Stone Supply",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204201923439571",
+          "color": "blue",
+          "enabled": true,
+          "name": "Van Spyker Landscaping",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207834469008121",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "Van Zeeland Nursery & Landscape",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203848709691766",
+          "color": "hot-pink",
+          "enabled": true,
+          "name": "Vermont Stone",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206125016476438",
+          "color": "magenta",
+          "enabled": true,
+          "name": "Villani Landshapers",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209372990403309",
+          "color": "indigo",
+          "enabled": true,
+          "name": "Vision Design Landscaping",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206541830116579",
+          "color": "pink",
+          "enabled": true,
+          "name": "Watershed",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203574904768372",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "Watson",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206355930491280",
+          "color": "indigo",
+          "enabled": true,
+          "name": "Weavers Landscape Company",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206396520606208",
+          "color": "blue",
+          "enabled": true,
+          "name": "Wenzel",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1203511304638588",
+          "color": "blue",
+          "enabled": true,
+          "name": "Wild Basin Pools",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211026802959073",
+          "color": "red",
+          "enabled": true,
+          "name": "WTX Outdoor Living",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1210039869721044",
+          "color": "green",
+          "enabled": true,
+          "name": "Yardcreations",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202210812070243",
+          "color": "cool-gray",
+          "enabled": true,
+          "name": "Zacarias",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202011663347965",
+          "color": "cool-gray",
+          "enabled": true,
+          "name": "ZLM",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1210357043003373",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Joe and Tony",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211302040337304",
+          "color": "red",
+          "enabled": true,
+          "name": "My Fence - Website 2025",
+          "resource_type": "enum_option"
+        }
+      ],
+      "multi_enum_values": [
+        {
+          "gid": "1207834469008121",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "Van Zeeland Nursery & Landscape",
+          "resource_type": "enum_option"
+        }
+      ],
+      "name": "C-Name",
+      "description": "Client Name",
+      "created_by": {
+        "gid": "1206112195268261",
+        "name": "Hasan",
+        "resource_type": "user"
+      },
+      "display_value": "Van Zeeland Nursery & Landscape",
+      "resource_subtype": "multi_enum",
+      "resource_type": "custom_field",
+      "is_formula_field": false,
+      "is_value_read_only": false,
+      "type": "multi_enum"
+    },
+    {
+      "gid": "1201612475823901",
+      "enabled": true,
+      "enum_options": [
+        {
+          "gid": "1201612475823902",
+          "color": "green",
+          "enabled": true,
+          "name": "Onboarding",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201612475823903",
+          "color": "red",
+          "enabled": true,
+          "name": "SEO",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201605343054398",
+          "color": "orange",
+          "enabled": true,
+          "name": "Website Strategy",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201605343054399",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Website Design",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201703507698660",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Website Homepage Mockup",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201605343054401",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "Website Final Approval",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201605343054402",
+          "color": "blue",
+          "enabled": true,
+          "name": "Website Go Live",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201605343054403",
+          "color": "aqua",
+          "enabled": true,
+          "name": "CrewRecruiter",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201605343054404",
+          "color": "blue",
+          "enabled": true,
+          "name": "Facebook Ads",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201681604311715",
+          "color": "purple",
+          "enabled": true,
+          "name": "Google Ads",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201681596583330",
+          "color": "indigo",
+          "enabled": true,
+          "name": "LinkedIn Ads",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201703508025894",
+          "color": "magenta",
+          "enabled": true,
+          "name": "Social Posting",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201703508025895",
+          "color": "hot-pink",
+          "enabled": true,
+          "name": "Videography",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201703508025896",
+          "color": "pink",
+          "enabled": true,
+          "name": "Account Management",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201703508025897",
+          "color": "cool-gray",
+          "enabled": true,
+          "name": "Offboarding, Pausing, & Ending Projects",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201703508025898",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Email",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201703508025899",
+          "color": "purple",
+          "enabled": true,
+          "name": "Website Updates",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201703508025900",
+          "color": "orange",
+          "enabled": true,
+          "name": "Brochure",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1201703508025901",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Brand Package",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1204779161379623",
+          "color": "blue",
+          "enabled": true,
+          "name": "Acuity",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206925944691437",
+          "color": "cool-gray",
+          "enabled": true,
+          "name": "Lead Magnet",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207327574539297",
+          "color": "blue",
+          "enabled": true,
+          "name": "Microsoft Ads",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207413632638777",
+          "color": "none",
+          "enabled": true,
+          "name": "Meetings",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207413632638778",
+          "color": "none",
+          "enabled": true,
+          "name": "OKRs",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207413632638779",
+          "color": "none",
+          "enabled": true,
+          "name": "Other",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207475547306431",
+          "color": "none",
+          "enabled": true,
+          "name": "Halstead",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207967478785578",
+          "color": "magenta",
+          "enabled": true,
+          "name": "PM Status Update",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1208886471162214",
+          "color": "none",
+          "enabled": true,
+          "name": "Dealer Brochure",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1208886471162215",
+          "color": "none",
+          "enabled": true,
+          "name": "Contractor/Homeowner Brochure",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209134151735773",
+          "color": "none",
+          "enabled": true,
+          "name": "MY FENCE - Website Homepage",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209134151735774",
+          "color": "none",
+          "enabled": true,
+          "name": "MY FENCE - Website Design",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209134151735775",
+          "color": "none",
+          "enabled": true,
+          "name": "MY FENCE - Website Go Live",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209134151735776",
+          "color": "none",
+          "enabled": true,
+          "name": "JAN FENCE - Website Homepage",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209134151735777",
+          "color": "none",
+          "enabled": true,
+          "name": "JAN FENCE - Website Design",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209134151735778",
+          "color": "none",
+          "enabled": true,
+          "name": "JAN FENCE - Website Go Live",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209324773325540",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Onboarding | Before Client Kick Off Call",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209324641971815",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Onboarding | During Client Kick Off Call",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209324767603764",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Onboarding | After Client Kick Off Call",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209324783457757",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Onboarding | Access",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209324781854743",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Onboarding | Lead Tracking & Review Building",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209324675439873",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "Website Homepage in Squarespace",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209324798641257",
+          "color": "green",
+          "enabled": true,
+          "name": "Website Core Pages",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209324854186325",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Website Full Build",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209324682640337",
+          "color": "aqua",
+          "enabled": true,
+          "name": "Website - One Week Before Go Live",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209597944843890",
+          "color": "purple",
+          "enabled": true,
+          "name": "Marketing Collateral Package",
+          "resource_type": "enum_option"
+        }
+      ],
+      "enum_value": {
+        "gid": "1201681604311715",
+        "color": "purple",
+        "enabled": true,
+        "name": "Google Ads",
+        "resource_type": "enum_option"
+      },
+      "name": "Category",
+      "description": "",
+      "created_by": {
+        "gid": "1206112195268261",
+        "name": "Hasan",
+        "resource_type": "user"
+      },
+      "display_value": "Google Ads",
+      "resource_subtype": "enum",
+      "resource_type": "custom_field",
+      "is_formula_field": false,
+      "is_value_read_only": false,
+      "type": "enum"
+    },
+    {
+      "gid": "1201681684952404",
+      "enabled": true,
+      "enum_options": [
+        {
+          "gid": "1201681684952415",
+          "color": "purple",
+          "enabled": true,
+          "name": "Tracy",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1202437761316041",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "Lauren",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1205453048385466",
+          "color": "hot-pink",
+          "enabled": true,
+          "name": "Kelsey",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1206838021534926",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Ellie",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1208975589873882",
+          "color": "red",
+          "enabled": true,
+          "name": "Austin",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209160725950002",
+          "color": "orange",
+          "enabled": true,
+          "name": "Polina",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211788213627767",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Cait",
+          "resource_type": "enum_option"
+        }
+      ],
+      "enum_value": {
+        "gid": "1206838021534926",
+        "color": "yellow-orange",
+        "enabled": true,
+        "name": "Ellie",
+        "resource_type": "enum_option"
+      },
+      "name": "PM Name",
+      "description": "",
+      "created_by": {
+        "gid": "1206112195268261",
+        "name": "Hasan",
+        "resource_type": "user"
+      },
+      "display_value": "Ellie",
+      "resource_subtype": "enum",
+      "resource_type": "custom_field",
+      "is_formula_field": false,
+      "is_value_read_only": false,
+      "type": "enum"
+    },
+    {
+      "gid": "1204497335200803",
+      "enabled": true,
+      "name": "Estimated time",
+      "description": "Asana-created. Estimate time to complete a task.",
+      "number_value": 90,
+      "precision": 0,
+      "created_by": null,
+      "display_value": "1h 30m",
+      "resource_subtype": "number",
+      "resource_type": "custom_field",
+      "is_formula_field": false,
+      "is_value_read_only": false,
+      "type": "number"
+    },
+    {
+      "gid": "1207413859435290",
+      "enabled": true,
+      "enum_options": [
+        {
+          "gid": "1207413859435291",
+          "color": "red",
+          "enabled": true,
+          "name": "High",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207413859435292",
+          "color": "orange",
+          "enabled": true,
+          "name": "Medium",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207413859435293",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Low",
+          "resource_type": "enum_option"
+        }
+      ],
+      "enum_value": null,
+      "name": "Priority",
+      "description": "Asana-created. Track the priority of each task.",
+      "created_by": {
+        "gid": "1198833104583101",
+        "name": "Tracy Hart",
+        "resource_type": "user"
+      },
+      "display_value": null,
+      "resource_subtype": "enum",
+      "resource_type": "custom_field",
+      "is_formula_field": false,
+      "is_value_read_only": false,
+      "type": "enum"
+    },
+    {
+      "gid": "1207702530965582",
+      "enabled": true,
+      "enum_options": [
+        {
+          "gid": "1207702530965585",
+          "color": "purple",
+          "enabled": true,
+          "name": "Fb ads management",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965586",
+          "color": "purple",
+          "enabled": true,
+          "name": "Google ads management",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965587",
+          "color": "purple",
+          "enabled": true,
+          "name": "Microsoft ads management ",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965588",
+          "color": "purple",
+          "enabled": true,
+          "name": "LinkedIn ads",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965589",
+          "color": "purple",
+          "enabled": true,
+          "name": "Pinterest community engagement",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965590",
+          "color": "purple",
+          "enabled": true,
+          "name": "LSA management",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965591",
+          "color": "blue",
+          "enabled": true,
+          "name": "Meetings",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1208060427883212",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Writing - Strategy/Outline",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965596",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Writing - new site homepage copy",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1208947270810661",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Writing - Core Pages.",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965597",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Writing - new site full copy ",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965593",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Writing - social",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965595",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Writing - email",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965594",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Writing - CrewRecruiter",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965599",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Writing - lead magnet ",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209654509194912",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Writing - Print Materials",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207708891300604",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Writing - site map",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209654509194913",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Writing - SEO",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965604",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Editing - new site homepage copy",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209654509194914",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Editing - Core Pages",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965605",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Editing - new site full copy",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207767363087565",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Editing - Full site final review - new site",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211091193098003",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Editing - Homepage internal revisions",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211091193098004",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Editing - homepage client revisions",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211091193098005",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Editing - Core page internal revisions",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211091193098006",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Editing - Core page client revisions",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211091193098007",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Editing - Full site internal revisions",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211091193098008",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Editing - Full site client revisions",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965601",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Editing - social",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965603",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Editing - email",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965602",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Editing - CrewRecruiter",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702531239194",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Editing - lead magnet",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209654509194915",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Editing - Print Materials",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209661122603405",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Editing - SEO",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211402059848903",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Editing - Video",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702531239195",
+          "color": "cool-gray",
+          "enabled": true,
+          "name": "StoryBrand",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965592",
+          "color": "red",
+          "enabled": true,
+          "name": "SEO - writing existing website",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702594257714",
+          "color": "red",
+          "enabled": true,
+          "name": "SEO - Blogs writing titles",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702594257715",
+          "color": "red",
+          "enabled": true,
+          "name": "SEO - Blogs editing titles",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702530965598",
+          "color": "red",
+          "enabled": true,
+          "name": "SEO - blog writing ",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702594257716",
+          "color": "red",
+          "enabled": true,
+          "name": "SEO - Blogs publishing",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209169570955920",
+          "color": "red",
+          "enabled": true,
+          "name": "SEO - GMB",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209169557356052",
+          "color": "red",
+          "enabled": true,
+          "name": "SEO - Keyword Research",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702670314496",
+          "color": "red",
+          "enabled": true,
+          "name": "SEO - new site",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702670314497",
+          "color": "red",
+          "enabled": true,
+          "name": "SEO - monthly ",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207727213857540",
+          "color": "red",
+          "enabled": true,
+          "name": "SEO - General",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207970386505664",
+          "color": "red",
+          "enabled": true,
+          "name": "SEO keywords to content plan ",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702594257720",
+          "color": "red",
+          "enabled": true,
+          "name": "SEO - design website update/fix",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702594257717",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "Social scheduling",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702594257718",
+          "color": "yellow-green",
+          "enabled": true,
+          "name": "Email - management",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1211045740760398",
+          "color": "yellow",
+          "enabled": true,
+          "name": "Design - Email ",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702594257719",
+          "color": "orange",
+          "enabled": true,
+          "name": "Design - new website",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209142414030482",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Design - Site Map",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702594257721",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Design - admin/ss domain",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702594257722",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Design - vision board",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702594257723",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Design - homepage mockup",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702594257724",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Design - homepage in SS",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1208947718431842",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Design - Core Pages",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702594257725",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Design - build out site",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702594257726",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Design - domain/go live",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702594257727",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Design - new site internal revisions",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702594257728",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Design - new site client revisions",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1210628231137369",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Design - Print materials (NOT brochures)",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702670314498",
+          "color": "green",
+          "enabled": true,
+          "name": "Graphic Design - Biz Cards",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702670314499",
+          "color": "green",
+          "enabled": true,
+          "name": "Graphic Design - Social",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702670314500",
+          "color": "green",
+          "enabled": true,
+          "name": "Graphic Design - Brochure",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207702670314501",
+          "color": "green",
+          "enabled": true,
+          "name": "Graphic Design - General",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207727213857541",
+          "color": "aqua",
+          "enabled": true,
+          "name": "Training",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207727213857542",
+          "color": "indigo",
+          "enabled": true,
+          "name": "Misc",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1208968491660090",
+          "color": "magenta",
+          "enabled": true,
+          "name": "OKR",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209624786087379",
+          "color": "indigo",
+          "enabled": true,
+          "name": "FB Boosting",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1209852825203112",
+          "color": "hot-pink",
+          "enabled": true,
+          "name": "Reporting",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1210163512373882",
+          "color": "pink",
+          "enabled": true,
+          "name": "Video Editing - Social posting ",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1210163512373883",
+          "color": "blue-green",
+          "enabled": true,
+          "name": "Integrations",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1210175778281176",
+          "color": "blue",
+          "enabled": true,
+          "name": "Onboarding - Kelsey ",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1210966687026933",
+          "color": "none",
+          "enabled": true,
+          "name": "Multiple Client Work",
+          "resource_type": "enum_option"
+        }
+      ],
+      "enum_value": {
+        "gid": "1207702530965586",
+        "color": "purple",
+        "enabled": true,
+        "name": "Google ads management",
+        "resource_type": "enum_option"
+      },
+      "name": "Time Tracking",
+      "description": "",
+      "created_by": {
+        "gid": "1198833104583101",
+        "name": "Tracy Hart",
+        "resource_type": "user"
+      },
+      "display_value": "Google ads management",
+      "resource_subtype": "enum",
+      "resource_type": "custom_field",
+      "is_formula_field": false,
+      "is_value_read_only": false,
+      "type": "enum"
+    },
+    {
+      "gid": "1207722133290315",
+      "enabled": true,
+      "enum_options": [
+        {
+          "gid": "1207722133290318",
+          "color": "red",
+          "enabled": true,
+          "name": "Unclear Task",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207765719391004",
+          "color": "orange",
+          "enabled": true,
+          "name": "Tracking Task",
+          "resource_type": "enum_option"
+        },
+        {
+          "gid": "1207815209427480",
+          "color": "yellow-orange",
+          "enabled": true,
+          "name": "Duplicate Task",
+          "resource_type": "enum_option"
+        }
+      ],
+      "enum_value": null,
+      "name": "Tracking Task",
+      "description": "",
+      "created_by": {
+        "gid": "1202400906079285",
+        "name": "Lauren Cullnan",
+        "resource_type": "user"
+      },
+      "display_value": null,
+      "resource_subtype": "enum",
+      "resource_type": "custom_field",
+      "is_formula_field": false,
+      "is_value_read_only": false,
+      "type": "enum"
+    }
+  ],
+  "dependencies": [],
+  "dependents": [],
+  "due_at": null,
+  "due_on": "2025-08-06",
+  "followers": [
+    {
+      "gid": "1210209044110500",
+      "resource_type": "user"
+    },
+    {
+      "gid": "1206488500387014",
+      "resource_type": "user"
+    },
+    {
+      "gid": "1205787985968620",
+      "resource_type": "user"
+    },
+    {
+      "gid": "1198833104583101",
+      "resource_type": "user"
+    },
+    {
+      "gid": "1202400906079285",
+      "resource_type": "user"
+    },
+    {
+      "gid": "1206726626875073",
+      "resource_type": "user"
+    }
+  ],
+  "html_notes": "<body>Thanks <a href=\"https://halsteadmedia.slack.com/team/U06FK1W4057\">@Lena Lebid</a> ! Client shared this feedback on LSAs:FYI - here are the set of charged calls that we’ve had since last week’s phone call.\n<ul><li>Garden bed quote - GOOD</li><li>2 calls – garden center looking for plants - OKAY</li><li>Garden center looking for stone - BAD</li><li>Asking how to prune plants - BAD</li><li>Asking about Eggstravaganza event that was sold out - BAD</li></ul>Are there any changes we can make based on this feedback?</body>",
+  "liked": false,
+  "memberships": [
+    {},
+    {},
+    {}
+  ],
+  "modified_at": "2025-08-06T18:37:18.547Z",
+  "name": "J Monthly #1 - 1.5 hr recurring - [Van Zeeland] Google + LSA Ads Check-In",
+  "notes": "Thanks https://halsteadmedia.slack.com/team/U06FK1W4057 ! Client shared this feedback on LSAs:FYI - here are the set of charged calls that we’ve had since last week’s phone call.\n    Garden bed quote - GOOD\n    2 calls – garden center looking for plants - OKAY\n    Garden center looking for stone - BAD\n    Asking how to prune plants - BAD\n    Asking about Eggstravaganza event that was sold out - BAD\nAre there any changes we can make based on this feedback?",
+  "num_likes": 0,
+  "num_subtasks": 0,
+  "parent": null,
+  "projects": [
+    {
+      "gid": "1201668388055244",
+      "resource_type": "project"
+    },
+    {
+      "gid": "1207413829228228",
+      "resource_type": "project"
+    },
+    {
+      "gid": "1207816263671761",
+      "resource_type": "project"
+    }
+  ],
+  "start_at": null,
+  "start_on": null,
+  "subtasks": [],
+  "tags": [],
+  "resource_subtype": "default_task",
+  "workspace": {
+    "gid": "10447183158961",
+    "resource_type": "workspace"
+  }
+}

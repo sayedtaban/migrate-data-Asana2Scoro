@@ -110,14 +110,19 @@ def export_asana_project(asana_client: AsanaClient, project_name: Optional[str] 
                 stories = asana_client.get_task_stories(task_gid)
                 detailed_task['stories'] = stories
                 
+                # Get time tracking entries
+                time_tracking_entries = asana_client.get_time_tracking_entries(task_gid)
+                detailed_task['time_tracking_entries'] = time_tracking_entries
+                
                 detailed_tasks.append(detailed_task)
-                logger.debug(f"    ✓ Retrieved details for task: {task_name} (subtasks: {len(detailed_task.get('subtasks', []))}, attachments: {len(attachments)}, comments: {len(stories)})")
+                logger.debug(f"    ✓ Retrieved details for task: {task_name} (subtasks: {len(detailed_task.get('subtasks', []))}, attachments: {len(attachments)}, comments: {len(stories)}, time entries: {len(time_tracking_entries)})")
             except Exception as e:
                 logger.warning(f"    ⚠ Could not retrieve details for task {task.get('name', task.get('gid'))}: {e}")
                 # Fall back to basic task data
                 task['subtasks'] = []
                 task['attachments'] = []
                 task['stories'] = []
+                task['time_tracking_entries'] = []
                 detailed_tasks.append(task)
         
         # Build task dependency map
