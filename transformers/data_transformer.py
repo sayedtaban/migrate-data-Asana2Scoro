@@ -21,7 +21,9 @@ from utils import logger
 from transformers.field_extractors import (
     extract_custom_field_value,
     extract_tags,
-    extract_priority
+    extract_priority,
+    extract_time_field_value,
+    convert_minutes_to_hhmmss
 )
 from transformers.mappers import (
     smart_map_phase,
@@ -534,8 +536,15 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             # Get estimated/actual time (if available in custom fields)
             # NOTE: Must extract this BEFORE setting completion status because Scoro requires
             # completed tasks to have time entries
-            estimated_time = extract_custom_field_value(task, 'Estimated time') or extract_custom_field_value(task, 'Estimated Time')
-            actual_time = extract_custom_field_value(task, 'Actual time') or extract_custom_field_value(task, 'Actual Time')
+            # Asana stores time as number_value in minutes, convert to HH:ii:ss format
+            estimated_time = extract_time_field_value(task, 'Estimated time') or extract_time_field_value(task, 'Estimated Time')
+            
+            # Extract actual time from custom fields or from task-level actual_time_minutes
+            actual_time = extract_time_field_value(task, 'Actual time') or extract_time_field_value(task, 'Actual Time')
+            
+            # Also check for actual_time_minutes at task level (Asana API may provide this)
+            if not actual_time and task.get('actual_time_minutes') is not None:
+                actual_time = convert_minutes_to_hhmmss(task.get('actual_time_minutes'))
             
             # Get completion status
             # IMPORTANT: Scoro requires that tasks marked as done must have time entries.

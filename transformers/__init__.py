@@ -5,7 +5,9 @@ from .field_extractors import (
     extract_custom_field_value,
     extract_tags,
     extract_priority,
-    format_comments_for_description
+    format_comments_for_description,
+    extract_time_field_value,
+    convert_minutes_to_hhmmss
 )
 from .mappers import (
     improve_misc_tracking,
@@ -25,6 +27,8 @@ __all__ = [
     'extract_tags',
     'extract_priority',
     'format_comments_for_description',
+    'extract_time_field_value',
+    'convert_minutes_to_hhmmss',
     'improve_misc_tracking',
     'smart_map_phase',
     'smart_map_activity_and_tracking',

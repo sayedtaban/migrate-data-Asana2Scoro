@@ -5,6 +5,30 @@ from typing import Dict, List, Optional
 from utils import logger
 
 
+def convert_minutes_to_hhmmss(minutes: int) -> str:
+    """
+    Convert minutes to HH:ii:ss format (Scoro API format)
+    
+    Args:
+        minutes: Number of minutes (e.g., 90 for 1h 30m)
+    
+    Returns:
+        String in HH:ii:ss format (e.g., "01:30:00")
+    """
+    if minutes is None:
+        return None
+    
+    try:
+        minutes_int = int(minutes)
+        hours = minutes_int // 60
+        mins = minutes_int % 60
+        seconds = 0
+        return f"{hours:02d}:{mins:02d}:{seconds:02d}"
+    except (ValueError, TypeError):
+        logger.warning(f"Could not convert minutes to HH:ii:ss format: {minutes}")
+        return None
+
+
 def extract_custom_field_value(task: Dict, field_name: str) -> Optional[str]:
     """Extract value from Asana custom fields"""
     custom_fields = task.get('custom_fields', [])
@@ -125,4 +149,46 @@ def format_comments_for_description(stories: List[Dict]) -> str:
                 comments.append(text)
     
     return '\n\n'.join(comments) if comments else ''
+
+
+def extract_time_field_value(task: Dict, field_name: str) -> Optional[str]:
+    """
+    Extract time field value from Asana task and convert to HH:ii:ss format.
+    
+    Asana stores time in minutes as number_value in custom fields.
+    This function extracts the number_value and converts it to Scoro's HH:ii:ss format.
+    
+    Args:
+        task: Asana task dictionary
+        field_name: Name of the time field (e.g., 'Estimated time', 'Actual time')
+    
+    Returns:
+        Time string in HH:ii:ss format, or None if not found
+    """
+    custom_fields = task.get('custom_fields', [])
+    if not custom_fields:
+        return None
+    
+    for field in custom_fields:
+        if isinstance(field, dict):
+            field_name_lower = field.get('name', '').lower()
+            if field_name.lower() in field_name_lower:
+                # Check if this is a number field (time fields are stored as numbers in minutes)
+                if 'number_value' in field:
+                    minutes = field.get('number_value')
+                    if minutes is not None:
+                        return convert_minutes_to_hhmmss(minutes)
+                # Fallback to text_value if present (though unlikely for time fields)
+                elif 'text_value' in field:
+                    value = field.get('text_value')
+                    if value:
+                        # Try to parse if it's already in a time format
+                        return str(value).strip() if str(value).strip() else None
+        elif hasattr(field, 'name') and field_name.lower() in field.name.lower():
+            if hasattr(field, 'number_value'):
+                minutes = field.number_value
+                if minutes is not None:
+                    return convert_minutes_to_hhmmss(minutes)
+    
+    return None
 
