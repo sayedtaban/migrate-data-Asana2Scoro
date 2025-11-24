@@ -379,14 +379,16 @@ class ScoroClient:
     def list_companies(self) -> List[Dict]:
         """
         List all companies in Scoro
+        Automatically handles pagination to fetch all companies.
         
         Returns:
             List of company dictionaries
         """
         try:
-            # Scoro API v2 requires POST to companies/list with specific request format
-            # Similar to projects/list endpoint
             endpoint = 'companies/list'
+            all_companies = []
+            page = 1
+            max_pages = 1000  # Safety limit to prevent infinite loops
             
             # Base request body format per Scoro API documentation
             base_request = {
@@ -405,78 +407,128 @@ class ScoroClient:
                 {**base_request, "request": {"filters": {}}},
             ]
             
-            last_error = None
-            data = None
-            success = False
-            
-            # Scoro API v2 requires POST requests with a request body
-            # Try POST with different request formats
-            for request_body in request_formats:
-                if success:
-                    break
-                try:
-                    logger.debug(f"Trying POST to endpoint '{endpoint}'")
-                    # Remove Authorization header when using apiKey in body
-                    headers_without_auth = {
-                        'Content-Type': 'application/json'
-                    }
-                    response = requests.post(
-                        f'{self.base_url}{endpoint}',
-                        headers=headers_without_auth,
-                        json=request_body
-                    )
-                    response.raise_for_status()
-                    data = response.json()
+            # Try to fetch all pages
+            while page <= max_pages:
+                last_error = None
+                data = None
+                success = False
+                bookmark_id = None
+                
+                # Try POST with different request formats
+                for request_body in request_formats:
+                    if success:
+                        break
                     
-                    # Check if we got an error response
-                    if isinstance(data, dict) and data.get('status') == 'ERROR':
-                        error_msg = data.get('messages', {}).get('error', ['Unknown error'])
-                        last_error = f"Scoro API error: {error_msg}"
-                        logger.debug(f"Format failed with error: {error_msg}, trying next format...")
-                        continue
+                    # Add pagination if we're on page > 1
+                    if page > 1:
+                        # Try with bookmark if we have one
+                        if bookmark_id:
+                            request_body = {**request_body, "bookmark": {"bookmark_id": str(bookmark_id)}}
+                        # Or try with page/per_page parameters
+                        else:
+                            request_body = {**request_body, "page": str(page), "per_page": "100"}
                     
-                    # If we got here, the request was successful
-                    success = True
-                    break
-                except requests.exceptions.HTTPError as e:
-                    if e.response is not None:
-                        try:
-                            error_data = e.response.json()
-                            if isinstance(error_data, dict) and error_data.get('status') == 'ERROR':
-                                error_msg = error_data.get('messages', {}).get('error', ['Unknown error'])
-                                last_error = f"Scoro API error: {error_msg}"
-                                logger.debug(f"Format failed with HTTP error: {error_msg}, trying next format...")
-                                continue
-                            else:
-                                # Non-error response, might be valid
-                                data = error_data
-                                success = True
+                    try:
+                        logger.debug(f"Trying POST to endpoint '{endpoint}' page {page}")
+                        headers_without_auth = {
+                            'Content-Type': 'application/json'
+                        }
+                        response = requests.post(
+                            f'{self.base_url}{endpoint}',
+                            headers=headers_without_auth,
+                            json=request_body
+                        )
+                        response.raise_for_status()
+                        data = response.json()
+                        
+                        # Check if we got an error response
+                        if isinstance(data, dict) and data.get('status') == 'ERROR':
+                            error_msg = data.get('messages', {}).get('error', ['Unknown error'])
+                            # If it's a pagination error (no more pages), break
+                            if 'bookmark' in str(error_msg).lower() or 'page' in str(error_msg).lower():
+                                logger.debug(f"No more pages available (page {page})")
                                 break
-                        except Exception:
-                            pass
-                    last_error = str(e)
-                    logger.debug(f"Format failed with exception: {e}, trying next format...")
+                            last_error = f"Scoro API error: {error_msg}"
+                            logger.debug(f"Format failed with error: {error_msg}, trying next format...")
+                            continue
+                        
+                        # If we got here, the request was successful
+                        success = True
+                        break
+                    except requests.exceptions.HTTPError as e:
+                        if e.response is not None:
+                            try:
+                                error_data = e.response.json()
+                                if isinstance(error_data, dict) and error_data.get('status') == 'ERROR':
+                                    error_msg = error_data.get('messages', {}).get('error', ['Unknown error'])
+                                    # If it's a pagination error, break
+                                    if 'bookmark' in str(error_msg).lower() or 'page' in str(error_msg).lower() or page > 1:
+                                        logger.debug(f"No more pages available (page {page})")
+                                        break
+                                    last_error = f"Scoro API error: {error_msg}"
+                                    logger.debug(f"Format failed with HTTP error: {error_msg}, trying next format...")
+                                    continue
+                                else:
+                                    # Non-error response, might be valid
+                                    data = error_data
+                                    success = True
+                                    break
+                            except Exception:
+                                pass
+                        last_error = str(e)
+                        logger.debug(f"Format failed with exception: {e}, trying next format...")
+                        continue
+                
+                if data is None:
+                    if page == 1:
+                        logger.warning("Could not list companies from Scoro API")
+                        return []
+                    else:
+                        # No more pages
+                        break
+                
+                # Handle different response structures
+                page_companies = []
+                if isinstance(data, list):
+                    page_companies = data
+                elif isinstance(data, dict):
+                    if 'data' in data and isinstance(data['data'], list):
+                        page_companies = data['data']
+                    elif 'companies' in data and isinstance(data['companies'], list):
+                        page_companies = data['companies']
+                    # Check for bookmark for next page
+                    bookmark = data.get('bookmark') or data.get('request', {}).get('bookmark')
+                    if bookmark:
+                        if isinstance(bookmark, dict):
+                            bookmark_id = bookmark.get('bookmark_id')
+                        elif isinstance(bookmark, str):
+                            bookmark_id = bookmark
+                
+                if not page_companies:
+                    # No more companies
+                    break
+                
+                all_companies.extend(page_companies)
+                logger.debug(f"Retrieved {len(page_companies)} companies from page {page} (total: {len(all_companies)})")
+                
+                # If we got fewer than 100 companies, we've likely reached the end
+                if len(page_companies) < 100:
+                    break
+                
+                # If no bookmark and we're on page 1, try to continue with page numbers
+                if not bookmark_id and page == 1:
+                    page += 1
                     continue
-            
-            if data is None:
-                logger.warning("Could not list companies from Scoro API")
-                return []
-            
-            # Handle different response structures
-            if isinstance(data, list):
-                companies = data
-            elif isinstance(data, dict):
-                if 'data' in data and isinstance(data['data'], list):
-                    companies = data['data']
-                elif 'companies' in data and isinstance(data['companies'], list):
-                    companies = data['companies']
+                elif bookmark_id:
+                    # Use bookmark for next page
+                    page += 1
+                    continue
                 else:
-                    companies = []
-            else:
-                companies = []
+                    # No more pages
+                    break
             
-            logger.info(f"Retrieved {len(companies)} companies from Scoro")
-            return companies
+            logger.info(f"Retrieved {len(all_companies)} total companies from Scoro (across {page} page(s))")
+            return all_companies
         except requests.exceptions.RequestException as e:
             logger.warning(f"Error listing Scoro companies: {e}")
             return []
@@ -486,6 +538,8 @@ class ScoroClient:
     def find_company_by_name(self, company_name: str) -> Optional[Dict]:
         """
         Find a company by name in Scoro
+        First tries to find it as a client (contact with is_client=True), then tries companies endpoint.
+        Uses improved pagination and name matching.
         
         Args:
             company_name: Name of the company to find
@@ -493,21 +547,62 @@ class ScoroClient:
         Returns:
             Company dictionary if found, None otherwise
         """
+        if not company_name or not company_name.strip():
+            return None
+        
         try:
-            companies = self.list_companies()
-            company_name_lower = company_name.lower().strip()
+            # First, try to find it as a client (contact with is_client=True)
+            # This is important because many companies are stored as contacts/clients
+            logger.debug(f"Searching for company '{company_name}' as a client first...")
+            client = self.find_client_by_name(company_name)
+            if client:
+                # Found as a client/contact, return it
+                client_id = client.get('id') or client.get('contact_id')
+                name = client.get('name', '') or client.get('search_name', '')
+                logger.info(f"Found existing company as client: {name} (ID: {client_id})")
+                return client
             
+            # If not found as a client, try the companies endpoint
+            logger.debug(f"Company '{company_name}' not found as client, trying companies endpoint...")
+            companies = self.list_companies()
+            
+            if not companies:
+                logger.debug(f"No companies found in Scoro")
+                return None
+            
+            # Normalize name for comparison (same logic as find_client_by_name)
+            def normalize_name(s):
+                """Normalize a name for comparison"""
+                if not s:
+                    return ""
+                return ' '.join(s.lower().strip().split())
+            
+            company_name_normalized = normalize_name(company_name)
+            
+            # Search through companies with improved matching
             for company in companies:
                 name = company.get('name', '') or company.get('company_name', '')
-                if name and name.lower().strip() == company_name_lower:
+                name_normalized = normalize_name(name)
+                
+                # Try exact match
+                if name_normalized == company_name_normalized:
                     company_id = company.get('id') or company.get('company_id') or company.get('client_id') or company.get('contact_id')
                     logger.info(f"Found existing company: {name} (ID: {company_id})")
                     return company
+                
+                # Try partial match (if names are long enough)
+                if name_normalized and len(company_name_normalized) >= 3 and len(name_normalized) >= 3:
+                    if company_name_normalized in name_normalized or name_normalized in company_name_normalized:
+                        company_id = company.get('id') or company.get('company_id') or company.get('client_id') or company.get('contact_id')
+                        logger.info(f"Found existing company by partial match: {name} (ID: {company_id})")
+                        return company
             
             logger.debug(f"Company not found: {company_name}")
             return None
         except Exception as e:
             logger.warning(f"Error finding company '{company_name}': {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
             return None
     
     @retry_with_backoff()
@@ -1150,4 +1245,475 @@ class ScoroClient:
         except Exception as e:
             logger.warning(f"Error finding phase '{phase_name}': {e}")
             return None
+    
+    @retry_with_backoff()
+    @rate_limit
+    def list_contacts(self, filters: Optional[Dict] = None) -> List[Dict]:
+        """
+        List contacts from Scoro with optional filtering
+        Automatically handles pagination to fetch all contacts.
+        
+        Args:
+            filters: Optional dictionary of filters to apply (e.g., {'is_client': True, 'name': 'Company Name'})
+        
+        Returns:
+            List of contact dictionaries
+        """
+        try:
+            endpoint = 'contacts/list'
+            all_contacts = []
+            page = 1
+            max_pages = 1000  # Safety limit to prevent infinite loops
+            
+            # Base request body format per Scoro API documentation
+            base_request = {
+                "lang": "eng",
+                "company_account_id": self.company_name,
+                "apiKey": self.api_key,
+                "request": {}
+            }
+            
+            # Add filters to request if provided
+            if filters:
+                base_request["request"]["filters"] = filters
+            
+            request_formats = [
+                # Format 1: Standard format per API documentation
+                base_request,
+                # Format 2: With basic_data flag
+                {**base_request, "basic_data": "1"},
+                # Format 3: With detailed_response flag
+                {**base_request, "detailed_response": "1"},
+            ]
+            
+            # Try to fetch all pages
+            while page <= max_pages:
+                last_error = None
+                data = None
+                success = False
+                bookmark_id = None
+                
+                # Try POST with different request formats
+                for request_body in request_formats:
+                    if success:
+                        break
+                    
+                    # Add pagination if we're on page > 1
+                    if page > 1:
+                        # Try with bookmark if we have one
+                        if bookmark_id:
+                            request_body = {**request_body, "bookmark": {"bookmark_id": str(bookmark_id)}}
+                        # Or try with page/per_page parameters
+                        else:
+                            request_body = {**request_body, "page": str(page), "per_page": "100"}
+                    
+                    try:
+                        logger.debug(f"Trying POST to endpoint '{endpoint}' page {page} with filters: {filters}")
+                        headers_without_auth = {
+                            'Content-Type': 'application/json'
+                        }
+                        response = requests.post(
+                            f'{self.base_url}{endpoint}',
+                            headers=headers_without_auth,
+                            json=request_body
+                        )
+                        response.raise_for_status()
+                        data = response.json()
+                        
+                        # Check if we got an error response
+                        if isinstance(data, dict) and data.get('status') == 'ERROR':
+                            error_msg = data.get('messages', {}).get('error', ['Unknown error'])
+                            # If it's a pagination error (no more pages), break
+                            if 'bookmark' in str(error_msg).lower() or 'page' in str(error_msg).lower():
+                                logger.debug(f"No more pages available (page {page})")
+                                break
+                            last_error = f"Scoro API error: {error_msg}"
+                            logger.debug(f"Format failed with error: {error_msg}, trying next format...")
+                            continue
+                        
+                        # If we got here, the request was successful
+                        success = True
+                        break
+                    except requests.exceptions.HTTPError as e:
+                        if e.response is not None:
+                            try:
+                                error_data = e.response.json()
+                                if isinstance(error_data, dict) and error_data.get('status') == 'ERROR':
+                                    error_msg = error_data.get('messages', {}).get('error', ['Unknown error'])
+                                    # If it's a pagination error, break
+                                    if 'bookmark' in str(error_msg).lower() or 'page' in str(error_msg).lower() or page > 1:
+                                        logger.debug(f"No more pages available (page {page})")
+                                        break
+                                    last_error = f"Scoro API error: {error_msg}"
+                                    logger.debug(f"Format failed with HTTP error: {error_msg}, trying next format...")
+                                    continue
+                                else:
+                                    # Non-error response, might be valid
+                                    data = error_data
+                                    success = True
+                                    break
+                            except Exception:
+                                pass
+                        last_error = str(e)
+                        logger.debug(f"Format failed with exception: {e}, trying next format...")
+                        continue
+                
+                if data is None:
+                    if page == 1:
+                        logger.warning("Could not list contacts from Scoro API")
+                        return []
+                    else:
+                        # No more pages
+                        break
+                
+                # Handle different response structures
+                page_contacts = []
+                if isinstance(data, list):
+                    page_contacts = data
+                elif isinstance(data, dict):
+                    if 'data' in data and isinstance(data['data'], list):
+                        page_contacts = data['data']
+                    elif 'contacts' in data and isinstance(data['contacts'], list):
+                        page_contacts = data['contacts']
+                    # Check for pagination - look for bookmark or pagination info
+                    elif 'request' in data and isinstance(data.get('request'), dict):
+                        request_data = data.get('request', {})
+                        if 'data' in request_data and isinstance(request_data['data'], list):
+                            page_contacts = request_data['data']
+                        elif 'contacts' in request_data and isinstance(request_data['contacts'], list):
+                            page_contacts = request_data['contacts']
+                    
+                    # Check for bookmark for next page
+                    bookmark = data.get('bookmark') or data.get('request', {}).get('bookmark')
+                    if bookmark:
+                        if isinstance(bookmark, dict):
+                            bookmark_id = bookmark.get('bookmark_id')
+                        elif isinstance(bookmark, str):
+                            bookmark_id = bookmark
+                
+                if not page_contacts:
+                    # No more contacts
+                    break
+                
+                all_contacts.extend(page_contacts)
+                logger.debug(f"Retrieved {len(page_contacts)} contacts from page {page} (total: {len(all_contacts)})")
+                
+                # If we got fewer than 100 contacts, we've likely reached the end
+                if len(page_contacts) < 100:
+                    break
+                
+                # If no bookmark and we're on page 1, try to continue with page numbers
+                if not bookmark_id and page == 1:
+                    page += 1
+                    continue
+                elif bookmark_id:
+                    # Use bookmark for next page
+                    page += 1
+                    continue
+                else:
+                    # No more pages
+                    break
+            
+            logger.info(f"Retrieved {len(all_contacts)} total contacts from Scoro (across {page} page(s))")
+            return all_contacts
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Error listing Scoro contacts: {e}")
+            return []
+    
+    @retry_with_backoff()
+    @rate_limit
+    def find_client_by_name(self, client_name: str) -> Optional[Dict]:
+        """
+        Find a client (contact with is_client=True) by name in Scoro
+        
+        Args:
+            client_name: Name of the client to find
+        
+        Returns:
+            Contact dictionary if found, None otherwise
+        """
+        try:
+            if not client_name or not client_name.strip():
+                return None
+            
+            client_name_clean = client_name.strip()
+            client_name_lower = client_name_clean.lower()
+            
+            # Note: Scoro API filter for is_client might not work as expected
+            # So we'll get all contacts and filter client-side
+            # Also, companies might be in the companies endpoint, not contacts
+            # Let's try both approaches
+            
+            # First, try to get contacts without filter (API filter might not work)
+            contacts = self.list_contacts(filters=None)
+            
+            if not contacts:
+                logger.debug(f"No contacts found in Scoro")
+                return None
+            
+            logger.debug(f"Searching through {len(contacts)} contacts for client: {client_name}")
+            
+            # Normalize names for comparison (handle special characters, whitespace)
+            def normalize_name(s):
+                """Normalize a name for comparison"""
+                if not s:
+                    return ""
+                # Convert to lowercase, strip whitespace, normalize whitespace
+                normalized = ' '.join(s.lower().strip().split())
+                return normalized
+            
+            client_name_normalized = normalize_name(client_name_clean)
+            
+            # Filter by name (case-insensitive) and check is_client flag
+            matching_contacts = []
+            for contact in contacts:
+                # Check if it's a client (is_client should be True or 1)
+                is_client = contact.get('is_client', False)
+                # Handle both boolean and integer values
+                if is_client not in (True, 1, '1', 'true'):
+                    continue
+                
+                # Check name field (for companies)
+                name = contact.get('name', '')
+                search_name = contact.get('search_name', '')
+                
+                # Debug: log first few contacts to see structure
+                if len(matching_contacts) == 0 and name:
+                    logger.debug(f"Sample contact - name: '{name}', search_name: '{search_name}', is_client: {is_client}, contact_type: {contact.get('contact_type', 'N/A')}")
+                
+                # Normalize names for comparison
+                name_normalized = normalize_name(name)
+                search_name_normalized = normalize_name(search_name)
+                
+                # Try exact match on name
+                if name_normalized == client_name_normalized:
+                    matching_contacts.append(contact)
+                    continue
+                
+                # Try exact match on search_name
+                if search_name_normalized == client_name_normalized:
+                    matching_contacts.append(contact)
+                    continue
+                
+                # Try partial match for name (if names are long enough)
+                if name_normalized and len(client_name_normalized) >= 3 and len(name_normalized) >= 3:
+                    if client_name_normalized in name_normalized or name_normalized in client_name_normalized:
+                        matching_contacts.append(contact)
+            
+            if matching_contacts:
+                # Return the first match (or could return all matches)
+                contact = matching_contacts[0]
+                contact_id = contact.get('id') or contact.get('contact_id')
+                name = contact.get('name', '') or contact.get('search_name', '')
+                logger.info(f"Found {len(matching_contacts)} client(s) matching '{client_name}': {name} (ID: {contact_id})")
+                return contact
+            
+            # If not found in contacts, try companies endpoint
+            logger.debug(f"Client not found in contacts, trying companies endpoint...")
+            companies = self.list_companies()
+            
+            if companies:
+                logger.debug(f"Searching through {len(companies)} companies for: {client_name}")
+                # Normalize function (reuse from above)
+                def normalize_name(s):
+                    if not s:
+                        return ""
+                    return ' '.join(s.lower().strip().split())
+                
+                client_name_normalized = normalize_name(client_name_clean)
+                
+                for company in companies:
+                    name = company.get('name', '') or company.get('company_name', '')
+                    name_normalized = normalize_name(name)
+                    
+                    if name_normalized == client_name_normalized:
+                        company_id = company.get('id') or company.get('company_id') or company.get('contact_id')
+                        logger.info(f"Found company by name: {name} (ID: {company_id})")
+                        return company
+            
+            logger.debug(f"Client not found: {client_name}")
+            return None
+        except Exception as e:
+            logger.warning(f"Error finding client '{client_name}': {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
+            return None
+    
+    def client_exists(self, client_name: str) -> bool:
+        """
+        Check if a client exists in Scoro by name
+        
+        Args:
+            client_name: Name of the client to check
+        
+        Returns:
+            True if client exists, False otherwise
+        """
+        client = self.find_client_by_name(client_name)
+        return client is not None
+    
+    @retry_with_backoff()
+    @rate_limit
+    def find_all_clients_by_name(self, client_name: str) -> List[Dict]:
+        """
+        Find ALL clients (contacts with is_client=True) matching the given name in Scoro
+        
+        Args:
+            client_name: Name of the client to find
+        
+        Returns:
+            List of contact dictionaries matching the name
+        """
+        try:
+            if not client_name or not client_name.strip():
+                return []
+            
+            client_name_clean = client_name.strip()
+            
+            # Get all contacts
+            contacts = self.list_contacts(filters=None)
+            
+            if not contacts:
+                logger.debug(f"No contacts found in Scoro")
+                return []
+            
+            logger.debug(f"Searching through {len(contacts)} contacts for all clients matching: {client_name}")
+            
+            # Normalize names for comparison
+            def normalize_name(s):
+                """Normalize a name for comparison"""
+                if not s:
+                    return ""
+                return ' '.join(s.lower().strip().split())
+            
+            client_name_normalized = normalize_name(client_name_clean)
+            
+            # Filter by name (case-insensitive) and check is_client flag
+            matching_contacts = []
+            for contact in contacts:
+                # Check if it's a client (is_client should be True or 1)
+                is_client = contact.get('is_client', False)
+                # Handle both boolean and integer values
+                if is_client not in (True, 1, '1', 'true'):
+                    continue
+                
+                # Check name field (for companies)
+                name = contact.get('name', '')
+                search_name = contact.get('search_name', '')
+                
+                # Normalize names for comparison
+                name_normalized = normalize_name(name)
+                search_name_normalized = normalize_name(search_name)
+                
+                # Try exact match on name
+                if name_normalized == client_name_normalized:
+                    matching_contacts.append(contact)
+                    continue
+                
+                # Try exact match on search_name
+                if search_name_normalized == client_name_normalized:
+                    matching_contacts.append(contact)
+                    continue
+                
+                # Try partial match for name (if names are long enough)
+                if name_normalized and len(client_name_normalized) >= 3 and len(name_normalized) >= 3:
+                    if client_name_normalized in name_normalized or name_normalized in client_name_normalized:
+                        matching_contacts.append(contact)
+            
+            logger.info(f"Found {len(matching_contacts)} client(s) matching '{client_name}'")
+            return matching_contacts
+        except Exception as e:
+            logger.warning(f"Error finding all clients '{client_name}': {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
+            return []
+    
+    @retry_with_backoff()
+    @rate_limit
+    def delete_contact(self, contact_id: int) -> bool:
+        """
+        Delete a contact in Scoro
+        
+        First tries the delete endpoint if available, otherwise uses modify to set deleted_date
+        
+        Args:
+            contact_id: ID of the contact to delete
+        
+        Returns:
+            True if deletion was successful, False otherwise
+        """
+        try:
+            # First, try the delete endpoint (similar to timeEntries/delete)
+            endpoint = f'contacts/delete/{contact_id}'
+            
+            request_body = self._build_request_body({})
+            
+            try:
+                response = requests.post(
+                    f'{self.base_url}{endpoint}',
+                    headers=self.headers,
+                    json=request_body
+                )
+                response.raise_for_status()
+                result = response.json()
+                
+                # Check if it was successful
+                if isinstance(result, dict):
+                    if result.get('status') == 'OK':
+                        logger.info(f"Successfully deleted contact {contact_id} via delete endpoint")
+                        return True
+                    elif result.get('status') == 'ERROR':
+                        # Delete endpoint might not exist, try modify approach
+                        logger.debug(f"Delete endpoint returned error, trying modify approach...")
+                    else:
+                        logger.info(f"Successfully deleted contact {contact_id}")
+                        return True
+            except requests.exceptions.HTTPError as e:
+                # If delete endpoint doesn't exist (404), try modify approach
+                if e.response and e.response.status_code == 404:
+                    logger.debug(f"Delete endpoint not found (404), trying modify approach...")
+                else:
+                    raise
+            
+            # Fallback: Use modify endpoint to set deleted_date
+            from datetime import datetime, timezone
+            endpoint = f'contacts/modify/{contact_id}'
+            
+            # Build request body to mark contact as deleted
+            # Set deleted_date to current timestamp in ISO8601 format (Y-m-d\TH:i:sP)
+            # Format: YYYY-mm-ddTHH:ii:ss+00:00 (ISO8601 with timezone)
+            now = datetime.now(timezone.utc)
+            # Format as ISO8601: YYYY-mm-ddTHH:MM:SS+00:00
+            deleted_date = now.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+            
+            request_data = {
+                'deleted_date': deleted_date
+            }
+            
+            request_body = self._build_request_body(request_data)
+            
+            response = requests.post(
+                f'{self.base_url}{endpoint}',
+                headers=self.headers,
+                json=request_body
+            )
+            response.raise_for_status()
+            result = response.json()
+            
+            # Handle response structure
+            if isinstance(result, dict):
+                if result.get('status') == 'ERROR':
+                    error_msg = result.get('messages', {}).get('error', ['Unknown error'])
+                    logger.error(f"Failed to delete contact {contact_id}: {error_msg}")
+                    return False
+                logger.info(f"Successfully deleted contact {contact_id} via modify endpoint")
+                return True
+            else:
+                logger.info(f"Successfully deleted contact {contact_id}")
+                return True
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error deleting contact {contact_id}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response: {e.response.text}")
+            return False
 

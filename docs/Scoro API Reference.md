@@ -873,3 +873,160 @@ Example response body:
     }
 }
 
+### Contacts
+This API endpoint supports requests authenticated by either user_token or apiKey.
+
+Name	Type	Description
+contact_id	Integer	Contact ID
+name	String	contact first name or company name
+lastname	String	contact last name. Used only for persons
+search_name	String	contact full name. Not used on modify requests.
+contact_type	String	possible values are "person" or "company". If none specified "company" is used
+id_code	String	code for company or person
+bankaccount	String	Contact bank account
+birthday	Date (YYYY-mm-dd)	can be without a year
+position	String	working position. CEO, manager etc.
+comments	String	Contact comment.
+sex	String	Possible values are "NULL", "F", "M"
+vatno	String	VAT number
+timezone	String	timezone codes to use are shown here
+manager_id	Integer	Contact manager ID.
+manager_email	String	Contact manager email.
+is_supplier	Boolean	If the company is a supplier or not.
+is_client	Boolean	If the contact is a client or not.
+client_profile_id	Integer	ID of the client profile
+created_date	Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP)	The date when contact was created.
+modified_date	Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP)	The date when contact was last modified.
+deleted_date	Datetime (DATE_ISO8601 - Y-m-d\TH:i:sP)	The date when contact was deleted.
+addresses	Array	Array of objects containing the following address fields: country (3-letter ISO 3166 code), county, municipality, city, street, zipcode. Not used on company based API list requests.
+means_of_contact	Object	Object containing any of the following fields: mobile, phone, email, website, skype, fax. Values can be strings or arrays if contact has multiple means of contact. Values will always be returned as arrays.
+tags	Array	Array of contact tags. Not used on list requests.
+reference_no	String	Reference number for contact.
+cat_id	Integer	Category id for contact.
+cat_name	String	Category name for contact.
+contact_users	Array	Contact related users.
+related_companies	Array	Array of objects containing the related_company_id and related_company_name fields. Filled only for contacts of type person.
+permissions	Array	Object user permissions. Used only for user based API
+contact_picture	String	Contact profile image URL.
+custom_fields	Object	Custom fields. Only filled on view requests.
+is_deleted	Boolean	Is deleted. Use 'include_deleted = 1' in request object to get deleted objects to response as well.
+Available actions are
+list
+Request URL:
+https://#companyname#.scoro.com/api/v2/contacts/list
+Description:
+Get list of contacts with user token. Providing bookmark object to the request will filter the results based on the values provided. Adding detailed_response flag returns all fields available in view request.
+Example request body:
+
+{
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "user_token": "USER_TOKEN",
+    "request": {},
+    "bookmark": {
+        "bookmark_id": "111"
+    }
+}
+
+Description:
+Get basic data for the list by adding "basic_data" to the request object. Bookmark object is optional.
+Example request body:
+
+{
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "user_token": "USER_TOKEN",
+    "basic_data": "1",
+    "request": {},
+    "bookmark": {
+        "bookmark_id": "111"
+    }
+}
+
+Description:
+Get list of contacts with API key
+Example request body:
+
+{
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "apiKey": "API_hash",
+    "request": {}
+}
+
+modify
+Request URL:
+https://#companyname#.scoro.com/api/v2/contacts/modify/(#id)
+Description:
+Modify specific contact or create a new one with user token. User needs to have permission to modify existing contact. Adding "return_data" parameter will control if object data will be returned with successful request.
+Example request body:
+
+{
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "user_token": "USER_TOKEN",
+    "request": {
+        "name": "New Name",
+        "addresses": [
+            {
+                "street": "Reading 13",
+                "zipcode": "123"
+            }
+        ]
+    }
+}
+
+Description:
+Modify specific contact or create a new one with API key
+Example request body:
+
+{
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "apiKey": "API_hash",
+    "request": {
+        "name": "New Name",
+        "addresses": [
+            {
+                "street": "Reading 13",
+                "zipcode": "123"
+            }
+        ],
+        "means_of_contact": {
+            "email": [
+                "some@company.com",
+                {
+                    "value": "info@company.com",
+                    "is_default": 1
+                }
+            ]
+        }
+    }
+}
+
+Description:
+Addresses parameter supports an array of address objects. Address object contains following parameters: street, zipcode, city, municipality, county, country. To modify existing address then contacts_addresses_id needs to be included in address object. In order to delete the existing address then provide only contacts_addresses_id in address object, contacts_addresses_id with all the other parameters empty or leave the address off from the request.
+view
+Request URL:
+https://#companyname#.scoro.com/api/v2/contacts/view/(#id)
+Description:
+Get specific contact object with user token. User needs to have permission to view the object.
+Example request body:
+
+{
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "user_token": "USER_TOKEN",
+    "request": {}
+}
+
+Description:
+Get specific contact object with API key
+Example request body:
+
+{
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "apiKey": "API_hash",
+    "request": {}
+}
