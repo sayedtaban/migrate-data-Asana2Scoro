@@ -700,6 +700,7 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                     
                                     # Resolve user_id from user_name if provided
                                     user_name = calculated_time_entry.get('user_name')
+                                    user_id = None
                                     if user_name:
                                         try:
                                             user = scoro_client.find_user_by_name(user_name)
@@ -714,6 +715,16 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                                 logger.warning(f"      [{idx}/{len(calculated_time_entries)}] Could not find time entry user '{user_name}' in Scoro users")
                                         except Exception as e:
                                             logger.warning(f"      [{idx}/{len(calculated_time_entries)}] Error resolving time entry user '{user_name}': {e}")
+                                    
+                                    # Fallback: Use task's owner_id if user_id is not set (required by Scoro API when using apiKey)
+                                    # This is especially useful for 00:00 time entries created for completed tasks without time tracking
+                                    if not user_id:
+                                        owner_id = task_data.get('owner_id')
+                                        if owner_id:
+                                            time_entry_data['user_id'] = owner_id
+                                            logger.debug(f"      [{idx}/{len(calculated_time_entries)}] Using task owner_id {owner_id} as fallback for time entry user")
+                                        else:
+                                            logger.warning(f"      [{idx}/{len(calculated_time_entries)}] No user_id available for time entry (user_name not found and no owner_id). Time entry creation may fail.")
                                     
                                     # Create time entry via Scoro Time Entries API
                                     time_entry = scoro_client.create_time_entry(time_entry_data)

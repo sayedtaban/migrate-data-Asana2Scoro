@@ -624,6 +624,7 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             # IMPORTANT: All tasks are created as "planned" (task_status1) first,
             # then time entries are created, and finally the status is updated based on:
             # - If completed AND has calculated_time_entries → task_status9 (Completed)
+            #   (If completed but no time entries, a 00:00 time entry is created automatically)
             # - If has calculated_time_entries AND not completed → task_status3 (In progress)
             # - If no calculated_time_entries AND not completed → task_status1 (Planned)
             # This is because Scoro rejects creating tasks as completed without existing time entries.
@@ -635,6 +636,53 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             
             # Store completion info for later status update in importer
             has_calculated_time_entries = len(calculated_time_entries) > 0
+            
+            # If task is completed but has no time entries, create a 00:00 time entry
+            # This allows us to mark the task as completed in Scoro (which requires time entries)
+            if completed and completed_at and not has_calculated_time_entries:
+                # Create a dummy 00:00 time entry for completed tasks without time tracking
+                # Use completion datetime for the time entry
+                completion_dt = None
+                try:
+                    if isinstance(completed_at, str):
+                        if 'T' in completed_at:
+                            completion_dt = datetime.fromisoformat(completed_at.replace('Z', '+00:00'))
+                        else:
+                            # Date only, use completion date at 00:00:00
+                            completion_dt = datetime.strptime(completed_at.split()[0], '%Y-%m-%d')
+                    else:
+                        completion_dt = completed_at
+                except Exception as e:
+                    logger.debug(f"    Could not parse completed_at: {completed_at}, error: {e}")
+                    # Fallback to current datetime
+                    completion_dt = datetime.now()
+                
+                # Use completion datetime for both start and end (00:00 duration)
+                completion_datetime_str = completion_dt.isoformat()
+                
+                # Get user name from assignee (task_owner) if available
+                user_name = task_owner if task_owner else None
+                
+                # Create 00:00 time entry
+                dummy_time_entry = {
+                    'start_datetime': completion_datetime_str,  # ISO8601 format
+                    'end_datetime': completion_datetime_str,  # ISO8601 format (same as start for 00:00)
+                    'duration': '00:00:00',  # HH:ii:ss format - zero duration
+                    'is_completed': True,  # Task is completed
+                    'completed_datetime': completion_datetime_str,  # ISO8601 format
+                    'event_type': 'task',  # This is a task time entry
+                    'time_entry_type': 'task',  # Time entry type
+                    'billable_time_type': 'billable',  # Default to billable
+                }
+                
+                # Add user_name if available (will be resolved by importer)
+                if user_name:
+                    dummy_time_entry['user_name'] = user_name
+                
+                calculated_time_entries.append(dummy_time_entry)
+                has_calculated_time_entries = True
+                logger.info(f"    Created 00:00 time entry for completed task without time tracking")
+            
             if completed and completed_at and has_calculated_time_entries:
                 # Store completion info in the time entries for later update
                 for time_entry in calculated_time_entries:
@@ -643,10 +691,6 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                 logger.debug(f"    Task will be marked as completed (task_status9) after time entry creation")
             elif has_calculated_time_entries and not completed:
                 logger.debug(f"    Task will be marked as in progress (task_status3) after time entry creation")
-            elif completed and completed_at and not has_calculated_time_entries:
-                # Task was completed in Asana but has no time tracking entries
-                # Keep as planned status - cannot mark as completed without time entries
-                logger.warning(f"    ⚠ Task was completed in Asana but has no time entries - keeping as planned status")
             
             # Get start date - Scoro API uses start_datetime (ISO8601 format)
             start_datetime = task.get('start_on') or task.get('start_at')
