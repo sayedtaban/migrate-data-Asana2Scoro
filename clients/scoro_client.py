@@ -49,6 +49,13 @@ class ScoroClient:
         self.headers = {
             'Content-Type': 'application/json'
         }
+        
+        # Caching for performance optimization
+        self._users_cache = None  # Cache for users list
+        self._companies_cache = None  # Cache for companies list
+        self._phases_cache = {}  # Cache for phases by project_id: {project_id: [phases]}
+        self._user_lookup_cache = {}  # Cache for user lookups by name: {name: user_dict}
+        
         logger.info(f"Scoro client initialized for {self.company_name}")
     
     def _build_request_body(self, request_data: Dict) -> Dict:
@@ -533,6 +540,27 @@ class ScoroClient:
             logger.warning(f"Error listing Scoro companies: {e}")
             return []
     
+    def _get_cached_companies(self) -> List[Dict]:
+        """
+        Get companies list, using cache if available
+        
+        Returns:
+            List of company dictionaries
+        """
+        if self._companies_cache is None:
+            self._companies_cache = self.list_companies()
+        return self._companies_cache
+    
+    def preload_companies_cache(self) -> None:
+        """
+        Pre-load companies cache to avoid repeated API calls during migration.
+        Call this at the start of migration for better performance.
+        """
+        if self._companies_cache is None:
+            logger.info("Pre-loading companies cache...")
+            self._companies_cache = self.list_companies()
+            logger.info(f"✓ Cached {len(self._companies_cache)} companies")
+    
     @retry_with_backoff()
     @rate_limit
     def find_company_by_name(self, company_name: str) -> Optional[Dict]:
@@ -540,6 +568,7 @@ class ScoroClient:
         Find a company by name in Scoro
         First tries to find it as a client (contact with is_client=True), then tries companies endpoint.
         Uses improved pagination and name matching.
+        Uses cached companies list to avoid repeated API calls.
         
         Args:
             company_name: Name of the company to find
@@ -562,9 +591,9 @@ class ScoroClient:
                 logger.info(f"Found existing company as client: {name} (ID: {client_id})")
                 return client
             
-            # If not found as a client, try the companies endpoint
+            # If not found as a client, try the companies endpoint (using cache)
             logger.debug(f"Company '{company_name}' not found as client, trying companies endpoint...")
-            companies = self.list_companies()
+            companies = self._get_cached_companies()
             
             if not companies:
                 logger.debug(f"No companies found in Scoro")
@@ -1021,11 +1050,34 @@ class ScoroClient:
                 logger.error(f"Response: {e.response.text}")
             raise
     
+    def _get_cached_users(self) -> List[Dict]:
+        """
+        Get users list, using cache if available
+        
+        Returns:
+            List of user dictionaries
+        """
+        if self._users_cache is None:
+            self._users_cache = self.list_users()
+        return self._users_cache
+    
+    def preload_users_cache(self) -> None:
+        """
+        Pre-load users cache to avoid repeated API calls during migration.
+        Call this at the start of migration for better performance.
+        """
+        if self._users_cache is None:
+            logger.info("Pre-loading users cache...")
+            self._users_cache = self.list_users()
+            logger.info(f"✓ Cached {len(self._users_cache)} users")
+    
     @retry_with_backoff()
     @rate_limit
     def find_user_by_name(self, user_name: str) -> Optional[Dict]:
         """
         Find a user by name in Scoro
+        
+        Uses cached users list to avoid repeated API calls.
         
         Args:
             user_name: Name of the user to find (can be full_name, firstname + lastname, or email)
@@ -1034,12 +1086,18 @@ class ScoroClient:
             User dictionary if found, None otherwise
         """
         try:
-            users = self.list_users()
+            # Check lookup cache first
+            user_name_lower = user_name.lower().strip()
+            if user_name_lower in self._user_lookup_cache:
+                cached_user = self._user_lookup_cache[user_name_lower]
+                logger.debug(f"Found user in lookup cache: {user_name}")
+                return cached_user
+            
+            # Get users from cache (or fetch if not cached)
+            users = self._get_cached_users()
             if not users:
                 logger.debug(f"No users available to search for: {user_name}")
                 return None
-            
-            user_name_lower = user_name.lower().strip()
             
             # Try multiple matching strategies
             for user in users:
@@ -1047,7 +1105,9 @@ class ScoroClient:
                 full_name = user.get('full_name', '')
                 if full_name and full_name.lower().strip() == user_name_lower:
                     user_id = user.get('id')
-                    logger.info(f"Found user by full_name: {full_name} (ID: {user_id})")
+                    logger.debug(f"Found user by full_name: {full_name} (ID: {user_id})")
+                    # Cache the result
+                    self._user_lookup_cache[user_name_lower] = user
                     return user
                 
                 # Try firstname + lastname
@@ -1057,14 +1117,18 @@ class ScoroClient:
                     combined_name = f"{firstname} {lastname}".lower().strip()
                     if combined_name == user_name_lower:
                         user_id = user.get('id')
-                        logger.info(f"Found user by firstname+lastname: {combined_name} (ID: {user_id})")
+                        logger.debug(f"Found user by firstname+lastname: {combined_name} (ID: {user_id})")
+                        # Cache the result
+                        self._user_lookup_cache[user_name_lower] = user
                         return user
                 
                 # Try email
                 email = user.get('email', '')
                 if email and email.lower().strip() == user_name_lower:
                     user_id = user.get('id')
-                    logger.info(f"Found user by email: {email} (ID: {user_id})")
+                    logger.debug(f"Found user by email: {email} (ID: {user_id})")
+                    # Cache the result
+                    self._user_lookup_cache[user_name_lower] = user
                     return user
                 
                 # Try partial match on full_name (in case of slight variations)
@@ -1075,9 +1139,13 @@ class ScoroClient:
                         # Only match if it's a reasonable match (not too short)
                         if len(user_name_lower) >= 3 and len(full_name_lower) >= 3:
                             user_id = user.get('id')
-                            logger.info(f"Found user by partial match: {full_name} (ID: {user_id})")
+                            logger.debug(f"Found user by partial match: {full_name} (ID: {user_id})")
+                            # Cache the result
+                            self._user_lookup_cache[user_name_lower] = user
                             return user
             
+            # Cache None result to avoid repeated lookups for non-existent users
+            self._user_lookup_cache[user_name_lower] = None
             logger.debug(f"User not found: {user_name}")
             return None
         except Exception as e:
@@ -1193,11 +1261,27 @@ class ScoroClient:
             logger.warning(f"Error listing Scoro project phases: {e}")
             return []
     
+    def _get_cached_phases(self, project_id: Optional[int] = None) -> List[Dict]:
+        """
+        Get project phases list, using cache if available
+        
+        Args:
+            project_id: Optional project ID to filter phases
+        
+        Returns:
+            List of phase dictionaries
+        """
+        cache_key = project_id if project_id else 'all'
+        if cache_key not in self._phases_cache:
+            self._phases_cache[cache_key] = self.list_project_phases(project_id=project_id)
+        return self._phases_cache[cache_key]
+    
     @retry_with_backoff()
     @rate_limit
     def find_phase_by_name(self, phase_name: str, project_id: Optional[int] = None) -> Optional[Dict]:
         """
         Find a project phase by name in Scoro
+        Uses cached phases list to avoid repeated API calls.
         
         Args:
             phase_name: Name (title) of the phase to find
@@ -1207,7 +1291,7 @@ class ScoroClient:
             Phase dictionary if found, None otherwise
         """
         try:
-            phases = self.list_project_phases(project_id=project_id)
+            phases = self._get_cached_phases(project_id=project_id)
             if not phases:
                 logger.debug(f"No phases available to search for: {phase_name}")
                 return None

@@ -9,16 +9,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Rate limiting configuration
+# OPTIMIZATION: Reduce RATE_LIMIT_DELAY if you're not hitting API rate limits
+# - 0.1s (100ms) = safe default, ~10 calls/second
+# - 0.05s (50ms) = faster, ~20 calls/second (use if API allows)
+# - 0.2s (200ms) = slower, ~5 calls/second (use if getting 429 errors)
 RATE_LIMIT_DELAY = 0.1  # Delay between API calls in seconds (100ms)
 MAX_RETRIES = 3  # Maximum number of retries for failed API calls
 RETRY_DELAY = 1  # Initial delay between retries in seconds
 RETRY_BACKOFF = 2  # Exponential backoff multiplier
 
 # Batch processing configuration
+# OPTIMIZATION: Larger batch sizes can improve throughput, but use more memory
+# - 50 = balanced default
+# - 100 = faster for large migrations (uses more memory)
+# - 25 = safer for limited memory or slower networks
 DEFAULT_BATCH_SIZE = 50
 
 # Test mode configuration - limit number of tasks to migrate (set to None to migrate all tasks)
-TEST_MODE_MAX_TASKS = 13  # Set to None for PRODUCTION - migrate all tasks
+TEST_MODE_MAX_TASKS = None  # Set to None for PRODUCTION - migrate all tasks
 
 # Date cutoff for task filtering
 CUTOFF_DATE = datetime(2025, 7, 1)  # Naive datetime for comparison

@@ -439,6 +439,18 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
             if project_company_id:
                 logger.debug(f"Will reuse company ID {project_company_id} for tasks")
         
+        # Pre-load caches for performance optimization
+        logger.info("Pre-loading caches to optimize performance...")
+        try:
+            scoro_client.preload_users_cache()
+        except Exception as e:
+            logger.warning(f"Failed to pre-load users cache: {e}")
+        
+        try:
+            scoro_client.preload_companies_cache()
+        except Exception as e:
+            logger.warning(f"Failed to pre-load companies cache: {e}")
+        
         # Fetch and cache activities to avoid repeated API calls for each task
         logger.info("Fetching activities from Scoro for activity type resolution...")
         try:
