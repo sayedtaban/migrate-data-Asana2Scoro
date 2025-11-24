@@ -18,7 +18,7 @@ RETRY_BACKOFF = 2  # Exponential backoff multiplier
 DEFAULT_BATCH_SIZE = 50
 
 # Test mode configuration - limit number of tasks to migrate (set to None to migrate all tasks)
-TEST_MODE_MAX_TASKS = 20  # Set to None for PRODUCTION - migrate all tasks
+TEST_MODE_MAX_TASKS = 120  # Set to None for PRODUCTION - migrate all tasks
 
 # Date cutoff for task filtering
 CUTOFF_DATE = datetime(2025, 7, 1)  # Naive datetime for comparison
@@ -71,3 +71,129 @@ WORKSPACE_GID = "10447183158961"
 # Migration mode: use 'gids' to migrate by GID list, 'names' to migrate by name list
 MIGRATION_MODE = 'gids'  # Options: 'gids' or 'names'
 
+PROFILE_USERNAME_MAPPING = [
+  {
+    "name": "Anna Halstead",
+    "asana_url": "https://app.asana.com/0/profile/10447184036603"
+  },
+  {
+    "name": "Andrea Pejoska",
+    "asana_url": "https://app.asana.com/0/profile/1206867781400650"
+  },
+  {
+    "name": "Steven Johnson",
+    "asana_url": "https://app.asana.com/0/profile/1207635308997107"
+  },
+  {
+    "name": "Polina Kroytor",
+    "asana_url": "https://app.asana.com/0/profile/1209094057469108"
+  },
+  {
+    "name": "ol@halsteadmedia.com",
+    "asana_url": "https://app.asana.com/0/profile/1211806426074842"
+  },
+  {
+    "name": "Olivia Mello",
+    "asana_url": "https://app.asana.com/0/profile/1202721628575576"
+  },
+  {
+    "name": "Matteo Banfo",
+    "asana_url": "https://app.asana.com/0/profile/1208917064861757"
+  },
+  {
+    "name": "Martina Willis",
+    "asana_url": "https://app.asana.com/0/profile/1208531756730727"
+  },
+  {
+    "name": "Mylessia Tkacs",
+    "asana_url": "https://app.asana.com/0/profile/1207404021328999"
+  },
+  {
+    "name": "Matej",
+    "asana_url": "https://app.asana.com/0/profile/541101205537979"
+  },
+  {
+    "name": "Lena Lebid",
+    "asana_url": "https://app.asana.com/0/profile/1206488509834213"
+  },
+  {
+    "name": "Kelsey Blomquist-Wright",
+    "asana_url": "https://app.asana.com/0/profile/1205368383443301"
+  },
+  {
+    "name": "Katya Pankov",
+    "asana_url": "https://app.asana.com/0/profile/1210679736012806"
+  },
+  {
+    "name": "",
+    "asana_url": "https://app.asana.com/0/profile/1210188488437299"
+  },
+  {
+    "name": "Giorgi Goguadze",
+    "asana_url": "https://app.asana.com/0/profile/1207470101295118"
+  },
+  {
+    "name": "Elizabeth Wood",
+    "asana_url": "https://app.asana.com/0/profile/1210678634682814"
+  },
+  {
+    "name": "Ellie Troughton",
+    "asana_url": "https://app.asana.com/0/profile/1206729612623556"
+  },
+  {
+    "name": "Elizabeth Wasserman",
+    "asana_url": "https://app.asana.com/0/profile/1205788360495774"
+  },
+  {
+    "name": "Debbie Hoffman",
+    "asana_url": "https://app.asana.com/0/profile/1208799271721028"
+  },
+  {
+    "name": "Dani Cervantes",
+    "asana_url": "https://app.asana.com/0/profile/1205507145644227"
+  },
+  {
+    "name": "Devon Stank",
+    "asana_url": "https://app.asana.com/0/profile/1209775398366541"
+  },
+  {
+    "name": "Christine Holz",
+    "asana_url": "https://app.asana.com/0/profile/1210225450436990"
+  },
+  {
+    "name": "Cait George",
+    "asana_url": "https://app.asana.com/0/profile/1211664775676977"
+  },
+  {
+    "name": "Corey",
+    "asana_url": "https://app.asana.com/0/profile/10447183158962"
+  },
+  {
+    "name": "Bethany Aeckersberg",
+    "asana_url": "https://app.asana.com/0/profile/1205337487077774"
+  },
+  {
+    "name": "Austin Koziol",
+    "asana_url": "https://app.asana.com/0/profile/1208915300929869"
+  },
+  {
+    "name": "Tisha Tolar",
+    "asana_url": "https://app.asana.com/0/profile/1211970711109258"
+  },
+  {
+    "name": "Tom Sanpakit",
+    "asana_url": "https://app.asana.com/0/profile/1211495860411951"
+  },
+  {
+    "name": "Tracy Hart",
+    "asana_url": "https://app.asana.com/0/profile/1198747167491633"
+  },
+  {
+    "name": "Tiffney Ma",
+    "asana_url": "https://app.asana.com/0/profile/1209546983786365"
+  },
+  {
+    "name": "Taryn Himmelright",
+    "asana_url": "https://app.asana.com/0/profile/1210804863139837"
+  }
+]

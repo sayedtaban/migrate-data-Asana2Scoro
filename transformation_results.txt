@@ -1,0 +1,279 @@
+================================================================================
+URL TRANSFORMATION TEST RESULTS
+================================================================================
+
+Test Case 1:
+--------------------------------------------------------------------------------
+ORIGINAL:
+You are amazing - thank you for these videos https://app.asana.com/0/profile/1205507145644227!!!
+
+TRANSFORMED:
+<p>You are amazing - thank you for these videos <span title="Ellie Troughton" class="mceNonEditable js-tinymce-user tinymce-user user-21">@<span class="mceNonEditable">Ellie</span> <span class="mceNonEditable">Troughton</span></span>!!!</p>
+
+VISIBLE TEXT (HTML stripped):
+You are amazing - thank you for these videos @Ellie Troughton!!!
+
+================================================================================
+
+Test Case 2:
+--------------------------------------------------------------------------------
+ORIGINAL:
+Hey https://app.asana.com/0/profile/1208799271721028, the original task asked me to recycle material from an existing brochure, not a website, so that was what I did. Website wasn't mentioned anywhere that I noticed, but maybe I missed something? There was also a heavy time constraint on it (2 flyers, 30 minutes), so I pressed on with it with that in mind. This is a partial of Ellie's note: Please dont spend a lot of time on this! Maybe about 30 min ? Scoping convo on slack: https://halsteadmedia.slack.com/archives/C07DSHJ2GRW/p1741716339289289
+For each of these flyers,  recycle copy from this brochure and add CTAs: 
+ https://docs.google.com/document/d/18fagJf_JND2ChlswbW2zoex5zI1MfY_RNIG_2EZKRM8/edit?usp=sharing
+
+TRANSFORMED:
+<p>Hey <span title="Tom Sanpakit" class="mceNonEditable js-tinymce-user tinymce-user user-1">@<span class="mceNonEditable">Tom</span> <span class="mceNonEditable">Sanpakit</span></span>, the original task asked me to recycle material from an existing brochure, not a website, so that was what I did. Website wasn't mentioned anywhere that I noticed, but maybe I missed something? There was also a heavy time constraint on it (2 flyers, 30 minutes), so I pressed on with it with that in mind. This is a partial of Ellie's note: Please dont spend a lot of time on this! Maybe about 30 min ? Scoping convo on slack: https://halsteadmedia.slack.com/archives/C07DSHJ2GRW/p1741716339289289
+For each of these flyers,  recycle copy from this brochure and add CTAs: 
+ https://docs.google.com/document/d/18fagJf_JND2ChlswbW2zoex5zI1MfY_RNIG_2EZKRM8/edit?usp=sharing</p>
+
+VISIBLE TEXT (HTML stripped):
+Hey @Tom Sanpakit, the original task asked me to recycle material from an existing brochure, not a website, so that was what I did. Website wasn't mentioned anywhere that I noticed, but maybe I missed something? There was also a heavy time constraint on it (2 flyers, 30 minutes), so I pressed on with it with that in mind. This is a partial of Ellie's note: Please dont spend a lot of time on this! Maybe about 30 min ? Scoping convo on slack: https://halsteadmedia.slack.com/archives/C07DSHJ2GRW/p1741716339289289
+For each of these flyers,  recycle copy from this brochure and add CTAs: 
+ https://docs.google.com/document/d/18fagJf_JND2ChlswbW2zoex5zI1MfY_RNIG_2EZKRM8/edit?usp=sharing
+
+================================================================================
+
+Test Case 3:
+--------------------------------------------------------------------------------
+ORIGINAL:
+You are amazing - thank you for these videos https://app.asana.com/0/profile/1205507145644227!!!
+
+TRANSFORMED:
+<p>You are amazing - thank you for these videos <span title="Ellie Troughton" class="mceNonEditable js-tinymce-user tinymce-user user-21">@<span class="mceNonEditable">Ellie</span> <span class="mceNonEditable">Troughton</span></span>!!!</p>
+
+VISIBLE TEXT (HTML stripped):
+You are amazing - thank you for these videos @Ellie Troughton!!!
+
+================================================================================
+
+Test Case 4:
+--------------------------------------------------------------------------------
+ORIGINAL:
+Hi https://app.asana.com/0/profile/1205507145644227! One more edit please! He wants to add a section to the https://www.beautifyyouryard.com/nursery-garden-center, near the top, that links to the upcoming events page: https://www.beautifyyouryard.com/upcoming-events
+
+TRANSFORMED:
+<p>Hi <span title="Ellie Troughton" class="mceNonEditable js-tinymce-user tinymce-user user-21">@<span class="mceNonEditable">Ellie</span> <span class="mceNonEditable">Troughton</span></span>! One more edit please! He wants to add a section to the https://www.beautifyyouryard.com/nursery-garden-center, near the top, that links to the upcoming events page: https://www.beautifyyouryard.com/upcoming-events</p>
+
+VISIBLE TEXT (HTML stripped):
+Hi @Ellie Troughton! One more edit please! He wants to add a section to the https://www.beautifyyouryard.com/nursery-garden-center, near the top, that links to the upcoming events page: https://www.beautifyyouryard.com/upcoming-events
+
+================================================================================
+
+Test Case 5:
+--------------------------------------------------------------------------------
+ORIGINAL:
+Hi https://app.asana.com/0/profile/1206729612623556! This is ready. Let me know if you have any edits: https://www.beautifyyouryard.com/nursery-garden-center
+
+TRANSFORMED:
+<p>Hi <span title="Ellie Troughton" class="mceNonEditable js-tinymce-user tinymce-user user-21">@<span class="mceNonEditable">Ellie</span> <span class="mceNonEditable">Troughton</span></span>! This is ready. Let me know if you have any edits: https://www.beautifyyouryard.com/nursery-garden-center</p>
+
+VISIBLE TEXT (HTML stripped):
+Hi @Ellie Troughton! This is ready. Let me know if you have any edits: https://www.beautifyyouryard.com/nursery-garden-center
+
+================================================================================
+
+Test Case 6:
+--------------------------------------------------------------------------------
+ORIGINAL:
+Hi https://app.asana.com/0/profile/1208531756730727 I did the core pages for Van Zeeland. Want to give it the first pass and see what you think? We'll send to Andrea as well but love to get your feedback first and hopefully catch anything before we send over to Andrea. https://docs.google.com/document/d/1RBTagYLfiZO_WIjT_FJuKlP4sXs5KV93/edit?usp=sharing&ouid=111228441255629348606&rtpof=true&sd=true
+
+TRANSFORMED:
+<p>Hi <span title="Andrea Pejoska" class="mceNonEditable js-tinymce-user tinymce-user user-2">@<span class="mceNonEditable">Andrea</span> <span class="mceNonEditable">Pejoska</span></span> I did the core pages for Van Zeeland. Want to give it the first pass and see what you think? We'll send to Andrea as well but love to get your feedback first and hopefully catch anything before we send over to Andrea. https://docs.google.com/document/d/1RBTagYLfiZO_WIjT_FJuKlP4sXs5KV93/edit?usp=sharing&ouid=111228441255629348606&rtpof=true&sd=true</p>
+
+VISIBLE TEXT (HTML stripped):
+Hi @Andrea Pejoska I did the core pages for Van Zeeland. Want to give it the first pass and see what you think? We'll send to Andrea as well but love to get your feedback first and hopefully catch anything before we send over to Andrea. https://docs.google.com/document/d/1RBTagYLfiZO_WIjT_FJuKlP4sXs5KV93/edit?usp=sharing&ouid=111228441255629348606&rtpof=true&sd=true
+
+================================================================================
+
+Test Case 7:
+--------------------------------------------------------------------------------
+ORIGINAL:
+https://app.asana.com/0/profile/1208799271721028 looks great. A couple of minor things, mostly a little rewrangle of the About Us page. Let me know what you think.
+
+TRANSFORMED:
+<p><span title="Tom Sanpakit" class="mceNonEditable js-tinymce-user tinymce-user user-1">@<span class="mceNonEditable">Tom</span> <span class="mceNonEditable">Sanpakit</span></span> looks great. A couple of minor things, mostly a little rewrangle of the About Us page. Let me know what you think.</p>
+
+VISIBLE TEXT (HTML stripped):
+@Tom Sanpakit looks great. A couple of minor things, mostly a little rewrangle of the About Us page. Let me know what you think.
+
+================================================================================
+
+Test Case 8:
+--------------------------------------------------------------------------------
+ORIGINAL:
+Hi https://app.asana.com/0/profile/1209264874946823!! I'm hoping that you can help with a quick update to all of the landscape design service pages!
+
+We're wanting to add a small section at the very bottom of the page with links to the previous & next services. 
+
+Here's a google doc with the step-by-step instructions and a video walkthrough!!
+
+https://docs.google.com/document/d/10zwQUP21tq0tXoi6WGUDWLHATvd-IlkWgwg5WZ8Cq2M/edit?usp=sharing
+
+Let me know if you have any questions while you're going through it - thank you so much! ??
+
+TRANSFORMED:
+<p>Hi <span title="Dani Cervantes" class="mceNonEditable js-tinymce-user tinymce-user user-3">@<span class="mceNonEditable">Dani</span> <span class="mceNonEditable">Cervantes</span></span>!! I'm hoping that you can help with a quick update to all of the landscape design service pages!
+
+We're wanting to add a small section at the very bottom of the page with links to the previous & next services. 
+
+Here's a google doc with the step-by-step instructions and a video walkthrough!!
+
+https://docs.google.com/document/d/10zwQUP21tq0tXoi6WGUDWLHATvd-IlkWgwg5WZ8Cq2M/edit?usp=sharing
+
+Let me know if you have any questions while you're going through it - thank you so much! ??</p>
+
+VISIBLE TEXT (HTML stripped):
+Hi @Dani Cervantes!! I'm hoping that you can help with a quick update to all of the landscape design service pages!
+
+We're wanting to add a small section at the very bottom of the page with links to the previous & next services. 
+
+Here's a google doc with the step-by-step instructions and a video walkthrough!!
+
+https://docs.google.com/document/d/10zwQUP21tq0tXoi6WGUDWLHATvd-IlkWgwg5WZ8Cq2M/edit?usp=sharing
+
+Let me know if you have any questions while you're going through it - thank you so much! ??
+
+================================================================================
+
+Test Case 9:
+--------------------------------------------------------------------------------
+ORIGINAL:
+Good Morning https://app.asana.com/0/profile/1205337487077774!
+
+This is done. It only took 30 minutes. I circled the last one, outdoor lighting, back to Patios & Walkways. 
+
+Thanks! 
+Tena
+
+TRANSFORMED:
+<p>Good Morning <span title="Tena" class="mceNonEditable js-tinymce-user tinymce-user user-4">@<span class="mceNonEditable">Tena</span></span>!
+
+This is done. It only took 30 minutes. I circled the last one, outdoor lighting, back to Patios & Walkways. 
+
+Thanks! 
+Tena</p>
+
+VISIBLE TEXT (HTML stripped):
+Good Morning @Tena!
+
+This is done. It only took 30 minutes. I circled the last one, outdoor lighting, back to Patios & Walkways. 
+
+Thanks! 
+Tena
+
+================================================================================
+
+Test Case 10:
+--------------------------------------------------------------------------------
+ORIGINAL:
+Hi https://app.asana.com/0/profile/1209264874946823!! Jut a few revisions from Dani on the service pages you built out!! Nothing major, just a few little spacing & copy things! 
+
+https://docs.google.com/document/d/1QNf15TyFgWau6MXH58SiwA7dBq7p4gk6TL04EWCk0EE/edit?tab=t.0
+
+From now on I'm going to get the designer who is working on the site to build out instructions for you because I think that some of the little things just got lost when I was creating the instructions! So I apologize for that! 
+
+Let me know if you have any questions at all!
+
+TRANSFORMED:
+<p>Hi <span title="Dani Cervantes" class="mceNonEditable js-tinymce-user tinymce-user user-3">@<span class="mceNonEditable">Dani</span> <span class="mceNonEditable">Cervantes</span></span>!! Jut a few revisions from Dani on the service pages you built out!! Nothing major, just a few little spacing & copy things! 
+
+https://docs.google.com/document/d/1QNf15TyFgWau6MXH58SiwA7dBq7p4gk6TL04EWCk0EE/edit?tab=t.0
+
+From now on I'm going to get the designer who is working on the site to build out instructions for you because I think that some of the little things just got lost when I was creating the instructions! So I apologize for that! 
+
+Let me know if you have any questions at all!</p>
+
+VISIBLE TEXT (HTML stripped):
+Hi @Dani Cervantes!! Jut a few revisions from Dani on the service pages you built out!! Nothing major, just a few little spacing & copy things! 
+
+https://docs.google.com/document/d/1QNf15TyFgWau6MXH58SiwA7dBq7p4gk6TL04EWCk0EE/edit?tab=t.0
+
+From now on I'm going to get the designer who is working on the site to build out instructions for you because I think that some of the little things just got lost when I was creating the instructions! So I apologize for that! 
+
+Let me know if you have any questions at all!
+
+================================================================================
+
+Test Case 11:
+--------------------------------------------------------------------------------
+ORIGINAL:
+https://app.asana.com/0/profile/1205337487077774- 
+
+1.5 Hours - and I noticed some other little things that needed to be done (the wrong color for the first sentence of testimonials), etc. Did those too.
+
+TRANSFORMED:
+<p><span title="Tena" class="mceNonEditable js-tinymce-user tinymce-user user-4">@<span class="mceNonEditable">Tena</span></span>- 
+
+1.5 Hours - and I noticed some other little things that needed to be done (the wrong color for the first sentence of testimonials), etc. Did those too.</p>
+
+VISIBLE TEXT (HTML stripped):
+@Tena- 
+
+1.5 Hours - and I noticed some other little things that needed to be done (the wrong color for the first sentence of testimonials), etc. Did those too.
+
+================================================================================
+
+Test Case 12:
+--------------------------------------------------------------------------------
+ORIGINAL:
+https://app.asana.com/0/0/1209181717376201/f
+
+Hi https://app.asana.com/0/profile/1206729612623556! These edits have been made, and I've attached the brochure files below. 
+
+I'm not sure if you're getting a proof done before the full print, but can you please ask the printer to triple check that the print file is set up properly and confirm that there won't be any formatting issues? Print jobs always make me nervous lol, so I want to be 100% sure that the file is ok and meets all the requirements. Thanks!
+
+TRANSFORMED:
+<p>https://app.asana.com/0/0/1209181717376201/f
+
+Hi <span title="Ellie Troughton" class="mceNonEditable js-tinymce-user tinymce-user user-21">@<span class="mceNonEditable">Ellie</span> <span class="mceNonEditable">Troughton</span></span>! These edits have been made, and I've attached the brochure files below. 
+
+I'm not sure if you're getting a proof done before the full print, but can you please ask the printer to triple check that the print file is set up properly and confirm that there won't be any formatting issues? Print jobs always make me nervous lol, so I want to be 100% sure that the file is ok and meets all the requirements. Thanks!</p>
+
+VISIBLE TEXT (HTML stripped):
+https://app.asana.com/0/0/1209181717376201/f
+
+Hi @Ellie Troughton! These edits have been made, and I've attached the brochure files below. 
+
+I'm not sure if you're getting a proof done before the full print, but can you please ask the printer to triple check that the print file is set up properly and confirm that there won't be any formatting issues? Print jobs always make me nervous lol, so I want to be 100% sure that the file is ok and meets all the requirements. Thanks!
+
+================================================================================
+
+Test Case 13:
+--------------------------------------------------------------------------------
+ORIGINAL:
+https://app.asana.com/0/profile/1205337487077774 can you remove the tagline on the last page “Expert Landscaping Rooted in Northeast Wisconsin” - then we will be moving to a hard proof so I'll double check with the printer that everything looks good!
+
+TRANSFORMED:
+<p><span title="Tena" class="mceNonEditable js-tinymce-user tinymce-user user-4">@<span class="mceNonEditable">Tena</span></span> can you remove the tagline on the last page “Expert Landscaping Rooted in Northeast Wisconsin” - then we will be moving to a hard proof so I'll double check with the printer that everything looks good!</p>
+
+VISIBLE TEXT (HTML stripped):
+@Tena can you remove the tagline on the last page “Expert Landscaping Rooted in Northeast Wisconsin” - then we will be moving to a hard proof so I'll double check with the printer that everything looks good!
+
+================================================================================
+
+Test Case 14:
+--------------------------------------------------------------------------------
+ORIGINAL:
+https://app.asana.com/0/0/1209118373371883/f
+
+Hi https://app.asana.com/0/profile/1206729612623556 - here's the updated brochure in spread & single page previews. Let me know if you need me to make any more updates! 
+
+Note: These are NOT print ready files, I can send those over once the design is approved.
+
+TRANSFORMED:
+<p>https://app.asana.com/0/0/1209118373371883/f
+
+Hi <span title="Ellie Troughton" class="mceNonEditable js-tinymce-user tinymce-user user-21">@<span class="mceNonEditable">Ellie</span> <span class="mceNonEditable">Troughton</span></span> - here's the updated brochure in spread & single page previews. Let me know if you need me to make any more updates! 
+
+Note: These are NOT print ready files, I can send those over once the design is approved.</p>
+
+VISIBLE TEXT (HTML stripped):
+https://app.asana.com/0/0/1209118373371883/f
+
+Hi @Ellie Troughton - here's the updated brochure in spread & single page previews. Let me know if you need me to make any more updates! 
+
+Note: These are NOT print ready files, I can send those over once the design is approved.
+
+================================================================================
+

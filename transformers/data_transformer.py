@@ -667,7 +667,7 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             
             # Map Asana task overview/description (stored in 'notes' or 'html_notes' field) to Scoro task "Description" field
             # At task level: Overview goes to "Description" field
-            description = task.get('overview') or task.get('notes', '') or task.get('html_notes', '')
+            description = task.get('notes', '')
             if description:
                 description = str(description).strip()
                 if description:

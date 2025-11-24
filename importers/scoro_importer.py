@@ -1,6 +1,7 @@
 """
 Import functionality for importing transformed data into Scoro
 """
+import html
 import re
 from typing import Dict, Optional
 
@@ -8,7 +9,170 @@ from clients.scoro_client import ScoroClient
 from clients.asana_client import AsanaClient
 from models import MigrationSummary
 from utils import logger, process_batch
-from config import DEFAULT_BATCH_SIZE, TEST_MODE_MAX_TASKS
+from config import DEFAULT_BATCH_SIZE, TEST_MODE_MAX_TASKS, PROFILE_USERNAME_MAPPING
+
+
+def replace_asana_profile_urls_with_scoro_mentions(
+    comment_text: str,
+    scoro_client: ScoroClient,
+    asana_data: Optional[Dict] = None,
+    wrap_in_paragraph: bool = True
+) -> str:
+    """
+    Replace Asana profile URLs in comment text with Scoro user mention HTML.
+    
+    Asana profile URLs like "https://app.asana.com/0/profile/1206729612623556"
+    are replaced with Scoro user mention HTML format:
+    <span title="Full Name" class="mceNonEditable js-tinymce-user tinymce-user user-{user_id}">
+        @<span class="mceNonEditable">First</span> <span class="mceNonEditable">Last</span>
+    </span>
+    
+    Args:
+        comment_text: The comment text that may contain Asana profile URLs
+        scoro_client: ScoroClient instance for looking up users
+        asana_data: Optional Asana export data containing users map for GID lookups
+        wrap_in_paragraph: If True, wrap the result in <p> tags (default: True, for comments)
+    
+    Returns:
+        Comment text with Asana profile URLs replaced by Scoro user mentions
+    """
+    if not comment_text:
+        return comment_text
+    
+    # Pattern to match Asana profile URLs: https://app.asana.com/0/profile/{GID}
+    # This pattern will match URLs even if they're inside HTML tags
+    asana_profile_pattern = r'https://app\.asana\.com/0/profile/(\d+)'
+    
+    # Check if there are any URLs to replace
+    urls_found = re.findall(asana_profile_pattern, comment_text)
+    if not urls_found:
+        # No URLs found, return as-is
+        logger.debug(f"      No Asana profile URLs found in comment text")
+        return comment_text
+    
+    logger.info(f"      Found {len(urls_found)} Asana profile URL(s) in comment: {urls_found}")
+    logger.debug(f"      Processing comment text for Asana profile URL replacement")
+    
+    def replace_url(match):
+        """Replace a single Asana profile URL with Scoro user mention"""
+        gid = match.group(1)
+        url = match.group(0)
+        
+        logger.debug(f"      Attempting to replace Asana profile URL: {url} (GID: {gid})")
+        
+        # Get user name from PROFILE_USERNAME_MAPPING
+        # Note: Profile URL GIDs are different from API user GIDs, so we use the mapping directly
+        user_name = None
+        logger.debug(f"      Looking up profile GID in PROFILE_USERNAME_MAPPING: {gid}")
+        for mapping in PROFILE_USERNAME_MAPPING:
+            mapping_url = mapping.get('asana_url', '')
+            # Extract GID from mapping URL
+            mapping_gid_match = re.search(r'/profile/(\d+)', mapping_url)
+            if mapping_gid_match:
+                mapping_gid = mapping_gid_match.group(1)
+                if str(mapping_gid) == str(gid):
+                    user_name = mapping.get('name', '')
+                    if user_name:
+                        logger.info(f"      Found user name '{user_name}' from PROFILE_USERNAME_MAPPING for profile GID: {gid}")
+                        break
+        
+        # If we don't have a user name, we can't create a proper mention
+        # Return the URL as-is (or could return just the name if we had it)
+        if not user_name:
+            logger.warning(f"      Could not find user name for GID: {gid}, leaving URL as-is")
+            return url
+        
+        # Find the Scoro user by name
+        logger.debug(f"      Looking up Scoro user by name: '{user_name}'")
+        scoro_user = scoro_client.find_user_by_name(user_name)
+        
+        # If not found and user_name looks like a first name only (single word, no spaces),
+        # try matching against firstname field specifically
+        if not scoro_user and ' ' not in user_name.strip():
+            logger.debug(f"      Name '{user_name}' appears to be first name only, trying firstname match")
+            try:
+                users = scoro_client.list_users()
+                if users:
+                    user_name_lower = user_name.lower().strip()
+                    for user in users:
+                        firstname = user.get('firstname', '').strip()
+                        if firstname and firstname.lower() == user_name_lower:
+                            scoro_user = user
+                            logger.info(f"      Found Scoro user by firstname match: '{firstname}' -> '{user.get('full_name', '')}' (ID: {user.get('id')})")
+                            break
+            except Exception as e:
+                logger.debug(f"      Error during firstname-only lookup: {e}")
+        
+        if not scoro_user:
+            logger.warning(f"      Could not find Scoro user '{user_name}' for GID: {gid}, leaving URL as-is")
+            return url
+        
+        user_id = scoro_user.get('id')
+        if not user_id:
+            logger.warning(f"      Scoro user '{user_name}' found but no ID available, leaving URL as-is")
+            return url
+        
+        logger.debug(f"      Found Scoro user '{user_name}' with ID: {user_id}")
+        
+        # Get first and last name from Scoro user
+        firstname = scoro_user.get('firstname', '').strip()
+        lastname = scoro_user.get('lastname', '').strip()
+        full_name = scoro_user.get('full_name', '').strip() or f"{firstname} {lastname}".strip()
+        
+        # If we don't have first/last name, try to split full_name
+        if not firstname or not lastname:
+            name_parts = full_name.split(maxsplit=1)
+            if len(name_parts) >= 2:
+                firstname = name_parts[0]
+                lastname = name_parts[1]
+            elif len(name_parts) == 1:
+                firstname = name_parts[0]
+                lastname = ''
+            else:
+                # Fallback: use full_name as firstname
+                firstname = full_name
+                lastname = ''
+        
+        # Build Scoro user mention HTML
+        # Format: <span title="Full Name" class="mceNonEditable js-tinymce-user tinymce-user user-{user_id}">
+        #         @<span class="mceNonEditable">First</span> <span class="mceNonEditable">Last</span>
+        #         </span>
+        # Escape HTML special characters in names to prevent XSS and HTML breakage
+        full_name_escaped = html.escape(full_name)
+        firstname_escaped = html.escape(firstname)
+        lastname_escaped = html.escape(lastname) if lastname else ''
+        
+        mention_html = (
+            f'<span title="{full_name_escaped}" class="mceNonEditable js-tinymce-user tinymce-user user-{user_id}">'
+            f'@<span class="mceNonEditable">{firstname_escaped}</span>'
+        )
+        if lastname:
+            mention_html += f' <span class="mceNonEditable">{lastname_escaped}</span>'
+        mention_html += '</span>'
+        
+        logger.debug(f"      Replaced Asana profile URL (GID: {gid}) with Scoro mention for '{full_name}' (user_id: {user_id})")
+        return mention_html
+    
+    # Replace all Asana profile URLs in the comment text
+    result = re.sub(asana_profile_pattern, replace_url, comment_text)
+    
+    # Check if any replacements were made
+    if result != comment_text:
+        logger.info(f"      Successfully replaced Asana profile URL(s) in comment")
+    else:
+        logger.warning(f"      No replacements made - URLs may not have been matched or users not found")
+    
+    # Wrap in <p> tags if requested (for comments, but not necessarily for descriptions)
+    if wrap_in_paragraph:
+        result = result.strip()
+        if result:
+            # Check if the result is already wrapped in <p> tags
+            # (could happen if the original comment had HTML structure)
+            if not (result.startswith('<p>') and result.endswith('</p>')):
+                # Wrap in <p> tags to ensure proper HTML structure
+                result = f'<p>{result}</p>'
+    
+    return result
 
 def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: MigrationSummary, 
                      batch_size: int = DEFAULT_BATCH_SIZE, asana_client: Optional[AsanaClient] = None,
@@ -439,6 +603,22 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                 logger.warning(f"    Could not find activity '{activity_type_name}' in Scoro activities")
                                 logger.debug(f"    Available activities: {list(activity_name_to_id.keys())[:10]}")
                         
+                        # Apply URL transformation to description field if present
+                        # This replaces Asana profile URLs with Scoro user mentions
+                        if 'description' in task_data and task_data.get('description'):
+                            description = task_data.get('description', '')
+                            if description:
+                                # Apply URL transformation to description
+                                # Note: wrap_in_paragraph=False because descriptions may already have HTML structure
+                                description = replace_asana_profile_urls_with_scoro_mentions(
+                                    description,
+                                    scoro_client,
+                                    asana_data,
+                                    wrap_in_paragraph=False
+                                )
+                                task_data['description'] = description
+                                logger.debug(f"    Applied URL transformation to task description")
+                        
                         # Remove fields that Scoro might not accept (metadata and name-only fields)
                         # Exclude: internal tracking fields, name-only fields (already resolved to IDs), 
                         # and fields not in Scoro Tasks API reference
@@ -594,8 +774,24 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                             continue
                                         
                                         # Clean HTML from comment text if present
+                                        # This removes HTML formatting but preserves plain text URLs
                                         comment_text = re.sub(r'<[^>]+>', '', comment_text).strip()
                                         if not comment_text:
+                                            continue
+                                        
+                                        # Replace Asana profile URLs with Scoro user mentions
+                                        # This adds HTML user mention spans to the comment
+                                        comment_text = replace_asana_profile_urls_with_scoro_mentions(
+                                            comment_text,
+                                            scoro_client,
+                                            asana_data
+                                        )
+                                        
+                                        # Check if comment is empty after processing (e.g., only HTML was stripped)
+                                        # Remove <p> tags for checking, then re-add if needed
+                                        comment_text_check = re.sub(r'<[^>]+>', '', comment_text).strip()
+                                        if not comment_text_check:
+                                            logger.debug(f"      Skipping comment: Empty after processing")
                                             continue
                                         
                                         # Extract author information
@@ -636,11 +832,12 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                         
                                         # Resolve user_id from author name or email
                                         user_id = None
+                                        user_obj = None
                                         if author_name:
                                             try:
-                                                user = scoro_client.find_user_by_name(author_name)
-                                                if user:
-                                                    user_id = user.get('id')
+                                                user_obj = scoro_client.find_user_by_name(author_name)
+                                                if user_obj:
+                                                    user_id = user_obj.get('id')
                                                     if user_id is not None:
                                                         logger.debug(f"      Resolved comment author '{author_name}' to user_id: {user_id}")
                                             except Exception as e:
@@ -649,9 +846,9 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                         # If user_id not found by name, try email
                                         if user_id is None and author_email:
                                             try:
-                                                user = scoro_client.find_user_by_name(author_email)
-                                                if user:
-                                                    user_id = user.get('id')
+                                                user_obj = scoro_client.find_user_by_name(author_email)
+                                                if user_obj:
+                                                    user_id = user_obj.get('id')
                                                     if user_id is not None:
                                                         logger.debug(f"      Resolved comment author by email '{author_email}' to user_id: {user_id}")
                                             except Exception as e:
@@ -665,21 +862,69 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                             comments_failed += 1
                                             continue
                                         
+                                        # Check if user is active - Scoro Comments API requires is_active=1 (true)
+                                        # For users, "inactive" means is_active=0 (false), which disables API operations
+                                        # The "status" field is for organizing data items, not user activation
+                                        if user_obj:
+                                            is_active_raw = user_obj.get('is_active')
+                                            logger.debug(f"      User object is_active value: {is_active_raw} (type: {type(is_active_raw)})")
+                                            
+                                            # Convert to boolean: 0/False = inactive, 1/True = active
+                                            # Also handle string representations like "1" or "0"
+                                            if isinstance(is_active_raw, str):
+                                                is_active = is_active_raw.lower() in ('1', 'true', 'yes')
+                                            elif isinstance(is_active_raw, int):
+                                                is_active = bool(is_active_raw)
+                                            elif is_active_raw is None:
+                                                is_active = False  # Default to inactive if not specified
+                                                logger.warning(f"      ⚠ User object missing is_active field, defaulting to inactive")
+                                            else:
+                                                is_active = bool(is_active_raw)
+                                            
+                                            logger.debug(f"      User is_active check result: {is_active}")
+                                            
+                                            # Skip comment if user is inactive (is_active=0)
+                                            if not is_active:
+                                                author_info = author_name or author_email or (f"GID: {user_gid}" if user_gid else "Unknown")
+                                                logger.warning(f"      ⚠ Skipping comment: Comment author '{author_info}' (user_id: {user_id}) is inactive in Scoro (is_active={is_active_raw}). Comments API requires active users (is_active=1).")
+                                                comments_failed += 1
+                                                continue
+                                        else:
+                                            logger.warning(f"      ⚠ User object is None, cannot check is_active status")
+                                            comments_failed += 1
+                                            continue
+                                        
                                         # Create comment via Scoro Comments API
                                         # Module is "tasks", object_id is the task ID
-                                        scoro_client.create_comment(
-                                            module='tasks',
-                                            object_id=scoro_task_id,
-                                            comment_text=comment_text,
-                                            user_id=user_id
-                                        )
-                                        comments_created += 1
-                                        logger.debug(f"      ✓ Comment created by {author_name}")
-                                        
+                                        try:
+                                            scoro_client.create_comment(
+                                                module='tasks',
+                                                object_id=scoro_task_id,
+                                                comment_text=comment_text,
+                                                user_id=user_id
+                                            )
+                                            comments_created += 1
+                                            logger.debug(f"      ✓ Comment created by {author_name}")
+                                        except ValueError as e:
+                                            # Handle Scoro API errors specifically
+                                            error_msg = str(e)
+                                            if "not found or is inactive" in error_msg.lower():
+                                                # User might have become inactive between user list fetch and comment creation
+                                                # Or the Comments API has stricter validation than other APIs
+                                                author_info = author_name or author_email or (f"GID: {user_gid}" if user_gid else "Unknown")
+                                                is_active_value = user_obj.get('is_active') if user_obj else 'unknown'
+                                                logger.warning(f"      ⚠ Failed to create comment: Scoro Comments API rejected user_id {user_id} ({author_info}). User has is_active={is_active_value} in user list, but API reports user as inactive. This may indicate the user was deactivated or the Comments API has additional requirements.")
+                                            else:
+                                                logger.warning(f"      ⚠ Failed to create comment: {error_msg}")
+                                            comments_failed += 1
+                                        except Exception as e:
+                                            comments_failed += 1
+                                            logger.warning(f"      ⚠ Failed to create comment: {e}")
+                                            # Don't fail the entire task if comment creation fails
                                     except Exception as e:
+                                        # Catch any other errors in comment processing (e.g., missing fields, etc.)
                                         comments_failed += 1
-                                        logger.warning(f"      ⚠ Failed to create comment: {e}")
-                                        # Don't fail the entire task if comment creation fails
+                                        logger.warning(f"      ⚠ Error processing comment: {e}")
                                 
                                 if comments_created > 0:
                                     logger.info(f"    ✓ Created {comments_created} comments for task")
