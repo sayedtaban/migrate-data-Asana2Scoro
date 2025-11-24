@@ -426,7 +426,7 @@ Set `TEST_MODE_MAX_TASKS` in `config.py` to limit the number of tasks migrated:
 ### Date Filtering
 Configure `CUTOFF_DATE` in `config.py` to filter tasks by completion date:
 ```python
-CUTOFF_DATE = datetime(2025, 7, 1)  # Only migrate tasks completed after this date
+CUTOFF_DATE = datetime(2018, 1, 1)  # Only migrate tasks completed after this date
 ```
 
 ### User Mapping

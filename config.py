@@ -13,7 +13,7 @@ load_dotenv()
 # - 0.1s (100ms) = safe default, ~10 calls/second
 # - 0.05s (50ms) = faster, ~20 calls/second (use if API allows)
 # - 0.2s (200ms) = slower, ~5 calls/second (use if getting 429 errors)
-RATE_LIMIT_DELAY = 0.1  # Delay between API calls in seconds (100ms)
+RATE_LIMIT_DELAY = 0.05  # Delay between API calls in seconds (100ms)
 MAX_RETRIES = 3  # Maximum number of retries for failed API calls
 RETRY_DELAY = 1  # Initial delay between retries in seconds
 RETRY_BACKOFF = 2  # Exponential backoff multiplier
@@ -23,13 +23,21 @@ RETRY_BACKOFF = 2  # Exponential backoff multiplier
 # - 50 = balanced default
 # - 100 = faster for large migrations (uses more memory)
 # - 25 = safer for limited memory or slower networks
-DEFAULT_BATCH_SIZE = 50
+DEFAULT_BATCH_SIZE = 100
+
+# Parallel processing configuration
+# OPTIMIZATION: More workers = faster processing, but more API load
+# - 5-10 = safe default, respects rate limits
+# - 10-20 = faster, use if API allows higher throughput
+# - 20+ = aggressive, may hit rate limits (429 errors)
+# Set to None to use default (min(32, os.cpu_count() + 4))
+MAX_WORKERS = 10  # Number of parallel workers for concurrent API calls
 
 # Test mode configuration - limit number of tasks to migrate (set to None to migrate all tasks)
-TEST_MODE_MAX_TASKS = 10  # Set to None for PRODUCTION - migrate all tasks
+TEST_MODE_MAX_TASKS = None  # Set to None for PRODUCTION - migrate all tasks
 
 # Date cutoff for task filtering
-CUTOFF_DATE = datetime(2025, 7, 1)  # Naive datetime for comparison
+CUTOFF_DATE = datetime(2010, 7, 1)  # Naive datetime for comparison
 
 # Valid Scoro users and user mapping
 VALID_SCORO_USERS = {

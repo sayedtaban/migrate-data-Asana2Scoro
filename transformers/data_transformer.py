@@ -524,11 +524,46 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             # Map users
             # Note: Project Manager (PM Name) is already handled at project level via manager_id
             # For task-level fields:
-            # - owner_id should be the TASK ASSIGNEE (the person responsible for THIS task)
-            # - related_users should include followers/collaborators
+            # - owner_id should be the TASK CREATOR (created_by) if available, otherwise TASK ASSIGNEE
+            # - related_users should include the assignee
             
-            # Task owner_id comes from task assignee (the person assigned to this specific task)
-            task_owner = validate_user(assignee, default_to_tom=False)
+            # Extract created_by information - prefer name from users map if available
+            created_by_name = None
+            created_by_gid = None
+            created_by_obj = task.get('created_by')
+            if created_by_obj:
+                # Get GID first
+                if isinstance(created_by_obj, dict):
+                    created_by_gid = created_by_obj.get('gid')
+                    created_by_name = created_by_obj.get('name', '')
+                elif hasattr(created_by_obj, 'gid'):
+                    created_by_gid = created_by_obj.gid
+                    created_by_name = created_by_obj.name if hasattr(created_by_obj, 'name') else None
+                else:
+                    created_by_name = str(created_by_obj) if created_by_obj else None
+                
+                # If we have users map, try to get name from there (more reliable)
+                users_map = asana_data.get('users', {})
+                if created_by_gid and created_by_gid in users_map:
+                    user_details = users_map[created_by_gid]
+                    created_by_name = user_details.get('name', created_by_name)
+                    logger.debug(f"    Using created_by name from users map: {created_by_name} (GID: {created_by_gid})")
+                
+                # Normalize empty strings to None
+                if not created_by_name or not str(created_by_name).strip():
+                    created_by_name = None
+                else:
+                    created_by_name = str(created_by_name).strip()
+            
+            # Task owner_id comes from task creator (created_by) if available, otherwise from assignee
+            # If created_by is null, fall back to assignee
+            if created_by_name:
+                task_owner = validate_user(created_by_name, default_to_tom=False)
+                logger.debug(f"    Task owner from created_by: {task_owner} (GID: {created_by_gid})")
+            else:
+                # Fall back to assignee if created_by is null or invalid
+                task_owner = validate_user(assignee, default_to_tom=False)
+                logger.debug(f"    Task owner from assignee (created_by is null): {task_owner}")
             
             # PM Name is for reference only (project manager is set at project level)
             pm_for_reference = validate_user(pm_name, default_to_tom=True) if pm_name else None
@@ -660,8 +695,9 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                 # Use completion datetime for both start and end (00:00 duration)
                 completion_datetime_str = completion_dt.isoformat()
                 
-                # Get user name from assignee (task_owner) if available
-                user_name = task_owner if task_owner else None
+                # Get user name from assignee for time entry (assignee is the one doing the work)
+                assigned_user = validate_user(assignee, default_to_tom=False)
+                user_name = assigned_user if assigned_user else None
                 
                 # Create 00:00 time entry
                 dummy_time_entry = {
@@ -842,21 +878,24 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             if priority_id:
                 transformed_task['priority_id'] = priority_id  # Scoro API uses 'priority_id' (Integer: 1=high, 2=normal, 3=low)
             
-            # Set owner_id (task assignee) - the person responsible for THIS specific task
+            # Set owner_id - the person responsible for THIS specific task
             # According to Scoro API: owner_id is "User ID of the user that is responsible for the event"
-            # This should be the task assignee, NOT the project manager
+            # This should be the task creator (created_by) if available, otherwise the task assignee
+            # NOT the project manager
             if task_owner:
                 transformed_task['owner_name'] = task_owner  # Store name, importer will resolve to owner_id
-                logger.debug(f"    Task assignee (owner_id): {task_owner}")
+                logger.debug(f"    Task owner (owner_id): {task_owner}")
             
             # Set related_users - ONLY the primary assignee should be in related_users
             # According to Scoro API: related_users is "Array of user IDs that the task is assigned to"
             # This should contain ONLY the assignee, NOT followers/collaborators
             # Followers/collaborators are NOT supported as assignees in Scoro
-            if task_owner:
+            # Note: related_users is always the assignee, even if owner_id comes from created_by
+            assigned_user = validate_user(assignee, default_to_tom=False)
+            if assigned_user:
                 # Only the primary assignee goes into related_users
-                transformed_task['assigned_to_name'] = [task_owner]  # Store as list, importer will resolve to related_users array
-                logger.debug(f"    Task related_users (assignee only): {task_owner}")
+                transformed_task['assigned_to_name'] = [assigned_user]  # Store as list, importer will resolve to related_users array
+                logger.debug(f"    Task related_users (assignee only): {assigned_user}")
             
             # Note: Followers/collaborators from Asana are NOT migrated to Scoro
             # Scoro's related_users field is for assignees only, not followers
