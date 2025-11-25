@@ -276,6 +276,119 @@ class ScoroClient:
     
     @retry_with_backoff()
     @rate_limit
+    def get_project(self, project_id: int) -> Optional[Dict]:
+        """
+        Get a project by ID from Scoro
+        
+        Args:
+            project_id: Project ID
+        
+        Returns:
+            Project dictionary if found, None otherwise
+        """
+        try:
+            endpoint = f'projects/view/{project_id}'
+            request_body = self._build_request_body({})
+            
+            response = requests.post(
+                f'{self.base_url}{endpoint}',
+                headers=self.headers,
+                json=request_body
+            )
+            response.raise_for_status()
+            result = response.json()
+            
+            # Handle response structure
+            if isinstance(result, dict):
+                if result.get('status') == 'ERROR':
+                    error_msg = result.get('messages', {}).get('error', ['Unknown error'])
+                    logger.warning(f"Error getting project {project_id}: {error_msg}")
+                    return None
+                # Response may have data key or be the project directly
+                project = result.get('data', result)
+            else:
+                project = result
+            
+            return project
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Error getting Scoro project {project_id}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.debug(f"Response: {e.response.text}")
+            return None
+    
+    @retry_with_backoff()
+    @rate_limit
+    def add_phase_to_project(self, project_id: int, phase_name: str, 
+                             phase_type: str = "phase", 
+                             start_date: Optional[str] = None, 
+                             end_date: Optional[str] = None) -> Dict:
+        """
+        Add a phase to a Scoro project
+        
+        According to Scoro API, phases are added by modifying the project with a phases array.
+        This method preserves existing phases and adds the new one.
+        
+        Args:
+            project_id: Project ID
+            phase_name: Name/title of the phase
+            phase_type: Type of phase - "phase" or "milestone" (default: "phase")
+            start_date: Optional start date in YYYY-mm-dd format
+            end_date: Optional end date in YYYY-mm-dd format
+        
+        Returns:
+            Updated project dictionary
+        """
+        try:
+            # Get existing project to preserve existing phases
+            project = self.get_project(project_id)
+            if not project:
+                raise ValueError(f"Project {project_id} not found")
+            
+            # Get existing phases from the project
+            existing_phases = project.get('phases', [])
+            if not isinstance(existing_phases, list):
+                existing_phases = []
+            
+            # Check if phase with same name already exists
+            phase_name_lower = phase_name.lower().strip()
+            for existing_phase in existing_phases:
+                existing_title = existing_phase.get('title', '') or existing_phase.get('name', '')
+                if existing_title.lower().strip() == phase_name_lower:
+                    logger.info(f"Phase '{phase_name}' already exists in project {project_id}")
+                    return project
+            
+            # Create new phase object
+            new_phase = {
+                "type": phase_type,
+                "title": phase_name
+            }
+            
+            if start_date:
+                new_phase["start_date"] = start_date
+            if end_date:
+                new_phase["end_date"] = end_date
+            
+            # Add new phase to existing phases
+            updated_phases = existing_phases + [new_phase]
+            
+            # Prepare project update data with phases
+            project_data = {
+                "phases": updated_phases
+            }
+            
+            # Update the project with all phases
+            updated_project = self.create_project(project_data, project_id=project_id)
+            
+            logger.info(f"Added phase '{phase_name}' to project {project_id}")
+            return updated_project
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error adding phase to project {project_id}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response: {e.response.text}")
+            raise
+    
+    @retry_with_backoff()
+    @rate_limit
     def create_task(self, task_data: Dict, task_id: Optional[int] = None) -> Dict:
         """
         Create or modify a task in Scoro
@@ -1256,6 +1369,7 @@ class ScoroClient:
                 phases = []
             
             logger.debug(f"Retrieved {len(phases)} project phases from Scoro")
+            # logger.debug(f"Phases: {phases}")
             return phases
         except requests.exceptions.RequestException as e:
             logger.warning(f"Error listing Scoro project phases: {e}")

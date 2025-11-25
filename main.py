@@ -91,12 +91,12 @@ def migrate_single_project(asana_client, scoro_client, project_gid=None, project
         summary.print_summary()
         
         # Save export data to file for inspection
-        logger.info("Saving exported data to file...")
-        project_name_safe = proj.get('name', project_identifier).replace(' ', '_').replace('/', '_')
-        output_file = f"asana_export_{project_name_safe}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(asana_data, f, indent=2, default=str)
-        logger.info(f"✓ Exported data saved to: {output_file}")
+        # logger.info("Saving exported data to file...")
+        # project_name_safe = proj.get('name', project_identifier).replace(' ', '_').replace('/', '_')
+        # output_file = f"asana_export_{project_name_safe}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        # with open(output_file, 'w', encoding='utf-8') as f:
+        #     json.dump(asana_data, f, indent=2, default=str)
+        # logger.info(f"✓ Exported data saved to: {output_file}")
         
         return {
             'success': True,

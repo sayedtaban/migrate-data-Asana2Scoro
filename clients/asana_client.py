@@ -468,6 +468,7 @@ class AsanaClient:
                 if resource_subtype == 'milestone':
                     milestones.append(task_dict)
             logger.info(f"Retrieved {len(milestones)} milestones for project {project_gid}")
+            logger.debug(f"Milesstones: {milestones}")
             return milestones
         except ApiException as e:
             status = e.status if hasattr(e, 'status') else 'Unknown'
