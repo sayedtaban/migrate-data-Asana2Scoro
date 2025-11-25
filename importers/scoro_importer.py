@@ -349,8 +349,10 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                 )
                 project_name = project.get('project_name') or project.get('name', 'Unknown')
                 logger.info(f"✓ Project created successfully: {project_name}")
+                print(f"✓ Project created successfully: {project_name}")
                 if project_id_for_log:
                     logger.debug(f"  Project ID: {project_id_for_log}")
+                    print(f"  Project ID: {project_id_for_log}")
                 else:
                     logger.warning(f"  Project ID not found in response. Available keys: {list(project.keys())}")
             except Exception as e:
@@ -465,6 +467,8 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
             )
             if project_id:
                 logger.info(f"Adding {len(phases_to_import)} phases from sections to project in Scoro...")
+                print(f"Adding {len(phases_to_import)} phases from sections to project in Scoro...")
+                print(f"  Using project ID: {project_id}")
                 logger.debug(f"  Using project ID: {project_id}")
                 try:
                     # Get existing phases to preserve them
@@ -502,6 +506,7 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                             
                             new_phases.append(scoro_phase)
                             logger.info(f"  - {phase_name}")
+                            print(f"  - {phase_name}")
                     
                     if new_phases:
                         # Combine existing phases with new phases
@@ -616,6 +621,7 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                     task_name = task_data.get('title', task_data.get('name', 'Unknown'))
                     global_idx = (batch_idx - 1) * batch_size + idx
                     logger.info(f"  [{global_idx}/{len(tasks_to_import)}] Creating task: {task_name}")
+                    print(f"  [{global_idx}/{len(tasks_to_import)}] Creating task: {task_name}")
                     try:
                         # Extract stories/comments before cleaning task_data
                         stories = task_data.get('stories', [])
@@ -643,6 +649,11 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                     logger.warning(f"    Could not find owner '{owner_name}' in Scoro users")
                             except Exception as e:
                                 logger.warning(f"    Error resolving owner '{owner_name}': {e}")
+                        
+                        # Ensure owner_id is set - use Tom Sanpakit (user_id: 1) as fallback if not available
+                        if not task_data.get('owner_id'):
+                            task_data['owner_id'] = 1
+                            logger.debug(f"    No owner_id available. Setting fallback owner_id to 1 (Tom Sanpakit)")
                         
                         # - assigned_to_name -> related_users (Array of user IDs)
                         # NOTE: assigned_to_name should contain ONLY the primary assignee (not followers)
@@ -674,6 +685,11 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                     logger.debug(f"    Set related_users (assignees only): {related_user_ids}")
                             except Exception as e:
                                 logger.warning(f"    Error resolving assignees '{assigned_to_name}': {e}")
+                        
+                        # Ensure related_users (assignees) is set - use Tom Sanpakit (user_id: 1) as fallback if not available
+                        if not task_data.get('related_users'):
+                            task_data['related_users'] = [1]
+                            logger.debug(f"    No assignees available. Setting fallback related_users to [1] (Tom Sanpakit)")
                         
                         # - project_phase_name -> project_phase_id (Integer)
                         project_phase_name = task_data.get('project_phase_name')
@@ -849,7 +865,10 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                             time_entry_data['user_id'] = owner_id
                                             logger.debug(f"      [{idx}/{len(calculated_time_entries)}] Using task owner_id {owner_id} as fallback for time entry user")
                                         else:
-                                            logger.warning(f"      [{idx}/{len(calculated_time_entries)}] No user_id available for time entry (user_name not found and no owner_id). Time entry creation may fail.")
+                                            # Final fallback: Use Tom Sanpakit (user_id: 1) if no user_id or owner_id available
+                                            task_data['owner_id'] = 1
+                                            time_entry_data['user_id'] = 1
+                                            logger.debug(f"      [{idx}/{len(calculated_time_entries)}] No user_id or owner_id available. Setting owner_id and using fallback user_id 1 (Tom Sanpakit) for time entry")
                                     
                                     # Create time entry via Scoro Time Entries API
                                     time_entry = scoro_client.create_time_entry(time_entry_data)
@@ -1085,6 +1104,7 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                             logger.debug(f"    Task response keys: {list(task.keys())}")
                     except Exception as e:
                         error_msg = f"Failed to create task '{task_name}': {e}"
+                        print(f"Failed to create task '{task_name}': {e}")
                         logger.error(f"    ✗ {error_msg}")
                         import_results['errors'].append(error_msg)
                         summary.add_failure(error_msg)

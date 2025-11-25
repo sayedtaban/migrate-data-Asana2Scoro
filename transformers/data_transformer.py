@@ -374,6 +374,7 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
         sections_to_transform = asana_data.get('sections', [])
         if sections_to_transform:
             logger.info(f"Transforming {len(sections_to_transform)} sections to phases...")
+            print(f"Transforming {len(sections_to_transform)} sections to phases...")
             for section in sections_to_transform:
                 section_name = section.get('name', 'Unknown')
                 section_gid = section.get('gid', '')
@@ -398,7 +399,25 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                 
                 transformed_data['phases'].append(transformed_phase)
                 logger.debug(f"  - {section_name} (GID: {section_gid})")
+                print(f"  - {section_name} (GID: {section_gid})")
             logger.info(f"✓ Transformed {len(transformed_data['phases'])} sections to phases")
+        
+        # Add "Misc" phase as default for tasks without sections
+        # Check if "Misc" phase already exists (avoid duplicates)
+        misc_exists = False
+        for phase in transformed_data['phases']:
+            phase_name = phase.get('name', '')
+            if phase_name.lower().strip() == 'misc':
+                misc_exists = True
+                break
+        
+        if not misc_exists:
+            misc_phase = {
+                'name': 'Misc',
+                'type': 'phase',
+            }
+            transformed_data['phases'].append(misc_phase)
+            logger.info("✓ Added default 'Misc' phase for tasks without sections")
         
         # Store section name mapping for use in task transformation
         transformed_data['section_name_map'] = section_name_map
@@ -419,6 +438,7 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             task_gid = task.get('gid', '')
             
             logger.info(f"  [{idx}/{len(tasks_to_transform)}] Transforming task: {task_name}")
+            print(f"  [{idx}/{len(tasks_to_transform)}] Transforming task: {task_name}")
             
             # Extract basic task data
             title = task.get('name', '').strip()
@@ -560,16 +580,16 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             
             # Map project phase
             # Priority: Use section name directly (since sections become phases with the same name)
-            # If no section, fall back to smart mapping based on title/activity
+            # If no section, assign to "Misc" phase (default phase created for tasks without sections)
             if section:
                 # Use section name directly - this matches the phase name created from the section
                 project_phase = section.strip()
                 logger.debug(f"    Task assigned to section/phase: {project_phase}")
             else:
-                # Fall back to smart mapping if no section
+                # Assign to "Misc" phase if no section (don't use smart_map_phase)
                 filled_phase += 1
-                project_phase = smart_map_phase(title, activity_type, section)
-                logger.debug(f"    Task phase inferred (no section): {project_phase}")
+                project_phase = 'Misc'
+                logger.debug(f"    Task assigned to 'Misc' phase (no section)")
             
             # Map users
             # Note: Project Manager (PM Name) is already handled at project level via manager_id

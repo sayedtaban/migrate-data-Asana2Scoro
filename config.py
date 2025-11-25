@@ -2,6 +2,7 @@
 Configuration and constants for Asana to Scoro migration
 """
 import os
+import logging
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -34,16 +35,20 @@ DEFAULT_BATCH_SIZE = 100
 MAX_WORKERS = 10  # Number of parallel workers for concurrent API calls
 
 # Test mode configuration - limit number of tasks to migrate (set to None to migrate all tasks)
-TEST_MODE_MAX_TASKS = 10  # Set to None for PRODUCTION - migrate all tasks
+TEST_MODE_MAX_TASKS = None  # Set to None for PRODUCTION - migrate all tasks
+
+# Logging configuration
+# Console log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 
 
 # Projects to migrate
 # Option 1: Use project GIDs (faster, no search needed)
 PROJECT_GIDS = [
     # Add more project GIDs here
-    "1207816263671761",  # Van Zeeland Nursery & Landscape
+    # "1207816263671761",  # Van Zeeland Nursery & Landscape
     # "1209020289079877",  # Exscape (VIP)
-    # "1201994636901967",  # BTS (VIP)
+    "1201994636901967",  # BTS (VIP)
     # "1211389004379875",  # Ethoscapes [VIP]
     # "1209371228065321",  # Heritage Landscapes (VIP)
 ]

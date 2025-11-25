@@ -12,7 +12,7 @@ from functools import wraps
 import requests
 from asana.rest import ApiException
 
-from config import RATE_LIMIT_DELAY, MAX_RETRIES, RETRY_DELAY, RETRY_BACKOFF
+from config import RATE_LIMIT_DELAY, MAX_RETRIES, RETRY_DELAY, RETRY_BACKOFF, CONSOLE_LOG_LEVEL
 
 # Configure Windows console for UTF-8 encoding to handle special characters
 if sys.platform == 'win32':
@@ -28,13 +28,24 @@ if not os.path.exists(logs_dir):
 
 # Configure logging with UTF-8 encoding to handle special characters
 log_filename = os.path.join(logs_dir, f'migration_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
+
+# Create file handler with DEBUG level
+file_handler = logging.FileHandler(log_filename, encoding='utf-8')
+file_handler.setLevel(logging.DEBUG)
+
+# Create console handler with level from config
+console_handler = logging.StreamHandler()
+console_handler.setLevel(CONSOLE_LOG_LEVEL)
+
+# Create formatter
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+# Configure root logger with DEBUG level (so file handler captures all levels)
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(log_filename, encoding='utf-8'),
-        logging.StreamHandler()
-    ]
+    handlers=[file_handler, console_handler]
 )
 logger = logging.getLogger(__name__)
 

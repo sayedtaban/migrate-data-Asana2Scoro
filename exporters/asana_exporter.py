@@ -32,7 +32,12 @@ def export_asana_project(asana_client: AsanaClient, project_name: Optional[str] 
             # Use provided project GID directly
             project_gid = str(project_gid)
             logger.info(f"Starting export using provided project GID: {project_gid}")
+            print(f"Starting export using provided project GID: {project_gid}")
+            
             logger.info("Step 1/5: Retrieving project details using GID...")
+            print("Step 1/5: Retrieving project details using GID...")
+            
+            
             project_details = asana_client.get_project_details(project_gid)
             logger.info(f"✓ Retrieved project: {project_details.get('name', 'Unknown')} (GID: {project_gid})")
             logger.debug(f"project_details: {project_details}")
@@ -93,7 +98,7 @@ def export_asana_project(asana_client: AsanaClient, project_name: Optional[str] 
                 task_name = task.get('name', task.get('gid', 'Unknown'))
                 task_gid = task.get('gid', '')
                 logger.info(f"  [{idx}/{total_tasks}] Retrieving details for task: {task_name}")
-                
+                print(f"  [{idx}/{total_tasks}] Retrieving details for task: {task_name}")
                 # Get full detailed task info (includes dependencies, tags, etc.)
                 detailed_task = asana_client.get_task_details(task_gid)
                 
