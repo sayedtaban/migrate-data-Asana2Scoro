@@ -201,6 +201,7 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
         'project': None,
         'tasks': [],
         'milestones': [],
+        'phases': [],  # Phases from Asana sections (different from milestones)
         'errors': []
     }
     
@@ -373,38 +374,75 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                 logger.info(f"Adding {len(milestones_to_import)} milestones (phases) to project in Scoro...")
                 logger.debug(f"  Using project ID: {project_id}")
                 try:
+                    # Get existing phases to preserve them
+                    existing_project = scoro_client.get_project(project_id)
+                    existing_phases = existing_project.get('phases', []) if existing_project else []
+                    if not isinstance(existing_phases, list):
+                        existing_phases = []
+                    
                     # Transform milestones to Scoro phase format
-                    phases = []
+                    new_phases = []
                     for milestone_data in milestones_to_import:
-                        phase_data = {}
+                        milestone_name = milestone_data.get('title') or milestone_data.get('name', 'Unknown')
                         
-                        # Map 'name' to 'title' (Scoro API requirement for phases)
-                        phase_data['title'] = milestone_data.get('title') or milestone_data.get('name', 'Unknown')
-                        phase_data['type'] = 'milestone'  # Use 'milestone' type for milestones
+                        # Check if milestone already exists (avoid duplicates)
+                        milestone_name_lower = milestone_name.lower().strip()
+                        milestone_exists = False
+                        for existing_phase in existing_phases:
+                            existing_title = existing_phase.get('title', '') or existing_phase.get('name', '')
+                            if existing_title.lower().strip() == milestone_name_lower:
+                                logger.debug(f"  Milestone '{milestone_name}' already exists, skipping")
+                                milestone_exists = True
+                                break
                         
-                        # Add dates if available
-                        if milestone_data.get('due_date'):
-                            phase_data['end_date'] = milestone_data['due_date']
-                        
-                        if milestone_data.get('start_date'):
-                            phase_data['start_date'] = milestone_data['start_date']
-                        
-                        phases.append(phase_data)
-                        logger.info(f"  - {phase_data['title']}")
+                        if not milestone_exists:
+                            phase_data = {}
+                            
+                            # Map 'name' to 'title' (Scoro API requirement for phases)
+                            phase_data['title'] = milestone_name
+                            phase_data['type'] = 'milestone'  # Use 'milestone' type for milestones
+                            
+                            # Add dates if available
+                            if milestone_data.get('due_date'):
+                                phase_data['end_date'] = milestone_data['due_date']
+                            
+                            if milestone_data.get('start_date'):
+                                phase_data['start_date'] = milestone_data['start_date']
+                            
+                            new_phases.append(phase_data)
+                            logger.info(f"  - {phase_data['title']}")
                     
-                    # Modify project to add phases
-                    project_update_data = {'phases': phases}
-                    updated_project = scoro_client.create_project(project_update_data, project_id=project_id)
-                    
-                    # Extract phases from response if available
-                    if 'phases' in updated_project:
-                        import_results['milestones'] = updated_project['phases']
+                    if new_phases:
+                        # Combine existing phases with new milestones
+                        all_phases = existing_phases + new_phases
+                        
+                        # Modify project to add phases
+                        project_update_data = {'phases': all_phases}
+                        updated_project = scoro_client.create_project(project_update_data, project_id=project_id)
                     else:
-                        # If phases aren't in response, mark them as created anyway
-                        import_results['milestones'] = [{'title': p['title']} for p in phases]
+                        logger.info(f"✓ All {len(milestones_to_import)} milestones already exist in project")
+                        updated_project = existing_project
                     
-                    summary.add_success()
-                    logger.info(f"✓ Successfully added {len(phases)} milestones to project")
+                        # Extract phases from response if available
+                        if 'phases' in updated_project:
+                            import_results['milestones'] = updated_project['phases']
+                        else:
+                            # If phases aren't in response, mark them as created anyway
+                            if new_phases:
+                                import_results['milestones'] = [{'title': p['title']} for p in new_phases]
+                            else:
+                                import_results['milestones'] = existing_phases
+                        
+                        # Clear phase cache for this project so tasks can find the newly created phases
+                        if hasattr(scoro_client, '_phases_cache'):
+                            cache_key = project_id if project_id else 'all'
+                            if cache_key in scoro_client._phases_cache:
+                                del scoro_client._phases_cache[cache_key]
+                            logger.debug(f"  Cleared phase cache for project {project_id} to ensure fresh phase lookup")
+                    
+                    if new_phases:
+                        summary.add_success()
+                        logger.info(f"✓ Successfully added {len(new_phases)} milestones to project")
                 except Exception as e:
                     error_msg = f"Failed to add milestones to project: {e}"
                     logger.error(f"✗ {error_msg}")
@@ -415,6 +453,92 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                 logger.debug(f"  Project response keys: {list(import_results['project'].keys()) if import_results['project'] else 'No project'}")
         elif milestones_to_import and not import_results['project']:
             logger.warning(f"Cannot create {len(milestones_to_import)} milestones: Project creation failed")
+        
+        # Create phases from sections (Asana sections → Scoro phases with type="phase")
+        phases_to_import = transformed_data.get('phases', [])
+        if phases_to_import and import_results['project']:
+            # Extract project ID - try multiple possible field names (Scoro API may use different field names)
+            project_id = (
+                import_results['project'].get('project_id') or 
+                import_results['project'].get('id') or
+                import_results['project'].get('projectId')
+            )
+            if project_id:
+                logger.info(f"Adding {len(phases_to_import)} phases from sections to project in Scoro...")
+                logger.debug(f"  Using project ID: {project_id}")
+                try:
+                    # Get existing phases to preserve them
+                    existing_project = scoro_client.get_project(project_id)
+                    existing_phases = existing_project.get('phases', []) if existing_project else []
+                    if not isinstance(existing_phases, list):
+                        existing_phases = []
+                    
+                    # Transform sections to Scoro phase format
+                    new_phases = []
+                    for phase_data in phases_to_import:
+                        phase_name = phase_data.get('name', 'Unknown')
+                        
+                        # Check if phase already exists (avoid duplicates)
+                        phase_name_lower = phase_name.lower().strip()
+                        phase_exists = False
+                        for existing_phase in existing_phases:
+                            existing_title = existing_phase.get('title', '') or existing_phase.get('name', '')
+                            if existing_title.lower().strip() == phase_name_lower:
+                                logger.debug(f"  Phase '{phase_name}' already exists, skipping")
+                                phase_exists = True
+                                break
+                        
+                        if not phase_exists:
+                            scoro_phase = {
+                                'title': phase_name,
+                                'type': 'phase'  # Sections become regular phases (not milestones)
+                            }
+                            
+                            # Sections typically don't have dates, but if they do, add them
+                            if phase_data.get('start_date'):
+                                scoro_phase['start_date'] = phase_data['start_date']
+                            if phase_data.get('end_date'):
+                                scoro_phase['end_date'] = phase_data['end_date']
+                            
+                            new_phases.append(scoro_phase)
+                            logger.info(f"  - {phase_name}")
+                    
+                    if new_phases:
+                        # Combine existing phases with new phases
+                        all_phases = existing_phases + new_phases
+                        
+                        # Modify project to add phases
+                        project_update_data = {'phases': all_phases}
+                        updated_project = scoro_client.create_project(project_update_data, project_id=project_id)
+                        
+                        # Extract phases from response if available
+                        if 'phases' in updated_project:
+                            # Update import_results to track phases separately from milestones
+                            if 'phases' not in import_results:
+                                import_results['phases'] = []
+                            import_results['phases'] = updated_project['phases']
+                        
+                        # Clear phase cache for this project so tasks can find the newly created phases
+                        if hasattr(scoro_client, '_phases_cache'):
+                            cache_key = project_id if project_id else 'all'
+                            if cache_key in scoro_client._phases_cache:
+                                del scoro_client._phases_cache[cache_key]
+                            logger.debug(f"  Cleared phase cache for project {project_id} to ensure fresh phase lookup")
+                        
+                        summary.add_success()
+                        logger.info(f"✓ Successfully added {len(new_phases)} phases from sections to project")
+                    else:
+                        logger.info(f"✓ All {len(phases_to_import)} phases from sections already exist in project")
+                except Exception as e:
+                    error_msg = f"Failed to add phases from sections to project: {e}"
+                    logger.error(f"✗ {error_msg}")
+                    import_results['errors'].append(error_msg)
+                    summary.add_failure(error_msg)
+            else:
+                logger.warning("Cannot add phases from sections: Project ID not available")
+                logger.debug(f"  Project response keys: {list(import_results['project'].keys()) if import_results['project'] else 'No project'}")
+        elif phases_to_import and not import_results['project']:
+            logger.warning(f"Cannot create {len(phases_to_import)} phases from sections: Project creation failed")
         
         # Create tasks with batch processing
         # Extract project ID - try multiple possible field names (Scoro API may use different field names)
@@ -553,6 +677,7 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                         
                         # - project_phase_name -> project_phase_id (Integer)
                         project_phase_name = task_data.get('project_phase_name')
+                        logger.debug(f"Find project phase name: {project_phase_name}")
                         if project_phase_name and project_id:
                             try:
                                 phase = scoro_client.find_phase_by_name(project_phase_name, project_id=project_id)
@@ -968,6 +1093,7 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
         logger.info(f"✓ Import completed!")
         logger.info(f"  Project: {'Created' if import_results['project'] else 'Failed'}")
         logger.info(f"  Milestones created: {len(import_results['milestones'])}")
+        logger.info(f"  Phases created (from sections): {len(import_results.get('phases', []))}")
         logger.info(f"  Tasks created: {len(import_results['tasks'])}")
         logger.info(f"  Tasks failed: {len([e for e in import_results['errors'] if 'task' in e.lower()])}")
         logger.info(f"  Total errors: {len(import_results['errors'])}")

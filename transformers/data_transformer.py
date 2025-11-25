@@ -323,7 +323,8 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             'company_name': company_name,  # Store separately for easy access (may be None)
             'is_client_project': is_client,  # Store for reference
             'tasks': [],
-            'milestones': []
+            'milestones': [],
+            'phases': []  # Phases from Asana sections (different from milestones)
         }
         logger.info(f"✓ Project transformed: {project_name} ({project_type})")
         if company_name:
@@ -364,6 +365,43 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                 
                 transformed_data['milestones'].append(transformed_milestone)
             logger.info(f"✓ Transformed {len(transformed_data['milestones'])} milestones")
+        
+        # Transform sections to phases
+        # Asana sections (columns) should be migrated as Scoro phases (type="phase")
+        # This is different from milestones which are migrated as type="milestone"
+        # Also create a mapping of section GID to section name for task assignment
+        section_name_map = {}  # Map section GID to section name for task phase assignment
+        sections_to_transform = asana_data.get('sections', [])
+        if sections_to_transform:
+            logger.info(f"Transforming {len(sections_to_transform)} sections to phases...")
+            for section in sections_to_transform:
+                section_name = section.get('name', 'Unknown')
+                section_gid = section.get('gid', '')
+                
+                # Store mapping for task assignment
+                if section_gid:
+                    section_name_map[section_gid] = section_name
+                
+                # Create phase from section
+                # Sections don't have dates in Asana, so we won't set start_date/end_date
+                transformed_phase = {
+                    'name': section_name,
+                    'type': 'phase',  # Sections become regular phases (not milestones)
+                }
+                
+                # Store section GID for reference (optional, for debugging)
+                if section_gid:
+                    transformed_phase['section_gid'] = section_gid
+                
+                # Sections might have created_at, but we typically don't use it for phase dates
+                # If needed, we could extract it, but it's usually not meaningful for phase dates
+                
+                transformed_data['phases'].append(transformed_phase)
+                logger.debug(f"  - {section_name} (GID: {section_gid})")
+            logger.info(f"✓ Transformed {len(transformed_data['phases'])} sections to phases")
+        
+        # Store section name mapping for use in task transformation
+        transformed_data['section_name_map'] = section_name_map
         
         # Transform tasks
         tasks_to_transform = asana_data.get('tasks', [])
@@ -496,7 +534,9 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             category = extract_custom_field_value(task, 'Category') or extract_custom_field_value(task, 'Activity Type')
             
             # Get section from memberships
+            # This is critical: tasks should be assigned to the phase that corresponds to their Asana section
             section = None
+            section_gid = None
             memberships = task.get('memberships', [])
             if memberships:
                 for membership in memberships:
@@ -507,8 +547,10 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                             if section_obj:
                                 if isinstance(section_obj, dict):
                                     section = section_obj.get('name', '')
+                                    section_gid = section_obj.get('gid', '')
                                 elif hasattr(section_obj, 'name'):
                                     section = section_obj.name
+                                    section_gid = getattr(section_obj, 'gid', '')
                             break
             
             # Map activity type using category mapping
@@ -517,9 +559,17 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                 filled_activity += 1
             
             # Map project phase
-            if not section:
+            # Priority: Use section name directly (since sections become phases with the same name)
+            # If no section, fall back to smart mapping based on title/activity
+            if section:
+                # Use section name directly - this matches the phase name created from the section
+                project_phase = section.strip()
+                logger.debug(f"    Task assigned to section/phase: {project_phase}")
+            else:
+                # Fall back to smart mapping if no section
                 filled_phase += 1
-            project_phase = smart_map_phase(title, activity_type, section)
+                project_phase = smart_map_phase(title, activity_type, section)
+                logger.debug(f"    Task phase inferred (no section): {project_phase}")
             
             # Map users
             # Note: Project Manager (PM Name) is already handled at project level via manager_id

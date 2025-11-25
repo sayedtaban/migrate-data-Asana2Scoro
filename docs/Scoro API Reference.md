@@ -205,6 +205,34 @@ local_price_list_id : Integer : Local price list ID. Available for role based pr
 custom_fields : Object : Custom fields. Only filled on view requests.
 is_deleted : Boolean : Is deleted. Use 'include_deleted = 1' in request object to get deleted objects to response as well.
 
+
+delete
+Request URL:
+https://#companyname#.scoro.com/api/v2/projects/delete/(#id)
+Description:
+Delete specific object with user token. User needs to have permissions to delete the object
+Example request body:
+
+{
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "user_token": "USER_TOKEN",
+    "request": {}
+}
+
+Description:
+Delete specific contact with API key
+Example request body:
+
+{
+    "lang": "eng",
+    "company_account_id": "tutorial",
+    "apiKey": "API_hash",
+    "request": {}
+}
+
+
+
 ### Summary
 
 To interact with the **Projects** module in Scoro API, use the endpoint:

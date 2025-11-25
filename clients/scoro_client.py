@@ -1379,6 +1379,9 @@ class ScoroClient:
         """
         Get project phases list, using cache if available
         
+        When project_id is provided, uses get_project() to get phases directly from the project,
+        which is more reliable than filtering the phases list endpoint.
+        
         Args:
             project_id: Optional project ID to filter phases
         
@@ -1387,7 +1390,25 @@ class ScoroClient:
         """
         cache_key = project_id if project_id else 'all'
         if cache_key not in self._phases_cache:
-            self._phases_cache[cache_key] = self.list_project_phases(project_id=project_id)
+            if project_id:
+                # For specific project, get phases directly from project view (more reliable)
+                project = self.get_project(project_id)
+                if project and 'phases' in project:
+                    phases = project['phases']
+                    if isinstance(phases, list):
+                        # Ensure each phase has project_id set
+                        for phase in phases:
+                            if 'project_id' not in phase:
+                                phase['project_id'] = project_id
+                        self._phases_cache[cache_key] = phases
+                        logger.debug(f"Retrieved {len(phases)} phases from project {project_id} view")
+                    else:
+                        self._phases_cache[cache_key] = []
+                else:
+                    self._phases_cache[cache_key] = []
+            else:
+                # For all phases, use the list endpoint
+                self._phases_cache[cache_key] = self.list_project_phases(project_id=project_id)
         return self._phases_cache[cache_key]
     
     @retry_with_backoff()
@@ -1407,17 +1428,18 @@ class ScoroClient:
         try:
             phases = self._get_cached_phases(project_id=project_id)
             if not phases:
-                logger.debug(f"No phases available to search for: {phase_name}")
+                logger.debug(f"No phases available to search for: {phase_name} in project {project_id if project_id else 'any'}")
                 return None
             
-            # IMPORTANT: Filter phases by project_id here because Scoro API may not honor the filter
-            # and return phases from all projects. This prevents matching phases from wrong projects.
+            # When project_id is provided, phases are already filtered to that project (from get_project)
+            # But we keep this as a safety check in case we're using the list endpoint
             if project_id is not None:
+                # Double-check that all phases belong to this project (safety check)
                 phases = [p for p in phases if p.get('project_id') == project_id]
                 if not phases:
                     logger.debug(f"No phases found for project ID {project_id} after filtering")
                     return None
-                logger.debug(f"Filtered to {len(phases)} phases for project ID {project_id}")
+                logger.debug(f"Searching {len(phases)} phases for project ID {project_id}")
             
             phase_name_lower = phase_name.lower().strip()
             
@@ -1911,6 +1933,310 @@ class ScoroClient:
                 return True
         except requests.exceptions.RequestException as e:
             logger.error(f"Error deleting contact {contact_id}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response: {e.response.text}")
+            return False
+    
+    @retry_with_backoff()
+    @rate_limit
+    def list_tasks(self, project_id: Optional[int] = None, filters: Optional[Dict] = None) -> List[Dict]:
+        """
+        List all tasks in Scoro with optional filtering
+        
+        Args:
+            project_id: Optional project ID to filter tasks by project
+            filters: Optional dictionary of additional filters to apply
+        
+        Returns:
+            List of task dictionaries
+        """
+        try:
+            endpoint = 'tasks/list'
+            all_tasks = []
+            page = 1
+            max_pages = 1000  # Safety limit to prevent infinite loops
+            
+            # Base request body format per Scoro API documentation
+            base_request = {
+                "lang": "eng",
+                "company_account_id": self.company_name,
+                "apiKey": self.api_key,
+                "request": {}
+            }
+            
+            # Add filters to request if provided
+            request_filters = {}
+            if project_id is not None:
+                request_filters["project_id"] = project_id
+            if filters:
+                request_filters.update(filters)
+            
+            if request_filters:
+                base_request["request"]["filters"] = request_filters
+            
+            request_formats = [
+                # Format 1: Standard format per API documentation
+                base_request,
+                # Format 2: With basic_data flag
+                {**base_request, "basic_data": "1"},
+                # Format 3: With detailed_response flag
+                {**base_request, "detailed_response": "1"},
+            ]
+            
+            # Try to fetch all pages
+            while page <= max_pages:
+                last_error = None
+                data = None
+                success = False
+                bookmark_id = None
+                
+                # Try POST with different request formats
+                for request_body in request_formats:
+                    if success:
+                        break
+                    
+                    # Add pagination if we're on page > 1
+                    if page > 1:
+                        # Try with bookmark if we have one
+                        if bookmark_id:
+                            request_body = {**request_body, "bookmark": {"bookmark_id": str(bookmark_id)}}
+                        # Or try with page/per_page parameters
+                        else:
+                            request_body = {**request_body, "page": str(page), "per_page": "100"}
+                    
+                    try:
+                        logger.debug(f"Trying POST to endpoint '{endpoint}' page {page} with filters: {request_filters}")
+                        headers_without_auth = {
+                            'Content-Type': 'application/json'
+                        }
+                        response = requests.post(
+                            f'{self.base_url}{endpoint}',
+                            headers=headers_without_auth,
+                            json=request_body
+                        )
+                        response.raise_for_status()
+                        data = response.json()
+                        
+                        # Check if we got an error response
+                        if isinstance(data, dict) and data.get('status') == 'ERROR':
+                            error_msg = data.get('messages', {}).get('error', ['Unknown error'])
+                            # If it's a pagination error (no more pages), break
+                            if 'bookmark' in str(error_msg).lower() or 'page' in str(error_msg).lower():
+                                logger.debug(f"No more pages available (page {page})")
+                                break
+                            last_error = f"Scoro API error: {error_msg}"
+                            logger.debug(f"Format failed with error: {error_msg}, trying next format...")
+                            continue
+                        
+                        # If we got here, the request was successful
+                        success = True
+                        break
+                    except requests.exceptions.HTTPError as e:
+                        if e.response is not None:
+                            try:
+                                error_data = e.response.json()
+                                if isinstance(error_data, dict) and error_data.get('status') == 'ERROR':
+                                    error_msg = error_data.get('messages', {}).get('error', ['Unknown error'])
+                                    # If it's a pagination error, break
+                                    if 'bookmark' in str(error_msg).lower() or 'page' in str(error_msg).lower() or page > 1:
+                                        logger.debug(f"No more pages available (page {page})")
+                                        break
+                                    last_error = f"Scoro API error: {error_msg}"
+                                    logger.debug(f"Format failed with HTTP error: {error_msg}, trying next format...")
+                                    continue
+                                else:
+                                    # Non-error response, might be valid
+                                    data = error_data
+                                    success = True
+                                    break
+                            except Exception:
+                                pass
+                        last_error = str(e)
+                        logger.debug(f"Format failed with exception: {e}, trying next format...")
+                        continue
+                
+                if data is None:
+                    if page == 1:
+                        logger.warning("Could not list tasks from Scoro API")
+                        return []
+                    else:
+                        # No more pages - API returned no data for this page
+                        logger.debug(f"No data returned for page {page}, stopping pagination")
+                        break
+                
+                # Handle different response structures
+                page_tasks = []
+                if isinstance(data, list):
+                    page_tasks = data
+                elif isinstance(data, dict):
+                    if 'data' in data and isinstance(data['data'], list):
+                        page_tasks = data['data']
+                    elif 'tasks' in data and isinstance(data['tasks'], list):
+                        page_tasks = data['tasks']
+                    # Check for bookmark for next page
+                    bookmark = data.get('bookmark') or data.get('request', {}).get('bookmark')
+                    if bookmark:
+                        if isinstance(bookmark, dict):
+                            bookmark_id = bookmark.get('bookmark_id')
+                        elif isinstance(bookmark, str):
+                            bookmark_id = bookmark
+                
+                if not page_tasks:
+                    # No more tasks
+                    break
+                
+                all_tasks.extend(page_tasks)
+                logger.debug(f"Retrieved {len(page_tasks)} tasks from page {page} (total: {len(all_tasks)})")
+                
+                # If we got fewer than 100 tasks, we've likely reached the end
+                if len(page_tasks) < 100:
+                    break
+                
+                # Continue to next page
+                # Prefer bookmark if available, otherwise use page numbers
+                if bookmark_id:
+                    # Use bookmark for next page
+                    page += 1
+                    continue
+                else:
+                    # No bookmark, but continue with page numbers
+                    # This ensures we fetch all pages even if API doesn't provide bookmarks
+                    page += 1
+                    continue
+            
+            logger.info(f"Retrieved {len(all_tasks)} total tasks from Scoro (across {page} page(s))")
+            return all_tasks
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Error listing Scoro tasks: {e}")
+            return []
+    
+    @retry_with_backoff()
+    @rate_limit
+    def delete_task(self, task_id: int) -> bool:
+        """
+        Delete a task in Scoro
+        
+        Args:
+            task_id: ID of the task to delete
+        
+        Returns:
+            True if deletion was successful, False otherwise
+        """
+        try:
+            # Try the delete endpoint (similar to timeEntries/delete)
+            endpoint = f'tasks/delete/{task_id}'
+            
+            request_body = self._build_request_body({})
+            
+            try:
+                response = requests.post(
+                    f'{self.base_url}{endpoint}',
+                    headers=self.headers,
+                    json=request_body
+                )
+                response.raise_for_status()
+                result = response.json()
+                
+                # Check if it was successful
+                if isinstance(result, dict):
+                    if result.get('status') == 'OK':
+                        logger.info(f"Successfully deleted task {task_id} via delete endpoint")
+                        return True
+                    elif result.get('status') == 'ERROR':
+                        # Delete endpoint might not exist, try modify approach
+                        logger.debug(f"Delete endpoint returned error, trying modify approach...")
+                    else:
+                        logger.info(f"Successfully deleted task {task_id}")
+                        return True
+            except requests.exceptions.HTTPError as e:
+                # If delete endpoint doesn't exist (404), try modify approach
+                if e.response and e.response.status_code == 404:
+                    logger.debug(f"Delete endpoint not found (404), trying modify approach...")
+                else:
+                    raise
+            
+            # Fallback: Use modify endpoint to set deleted_date
+            from datetime import datetime, timezone
+            endpoint = f'tasks/modify/{task_id}'
+            
+            # Build request body to mark task as deleted
+            now = datetime.now(timezone.utc)
+            deleted_date = now.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+            
+            request_data = {
+                'deleted_date': deleted_date
+            }
+            
+            request_body = self._build_request_body(request_data)
+            
+            response = requests.post(
+                f'{self.base_url}{endpoint}',
+                headers=self.headers,
+                json=request_body
+            )
+            response.raise_for_status()
+            result = response.json()
+            
+            # Handle response structure
+            if isinstance(result, dict):
+                if result.get('status') == 'ERROR':
+                    error_msg = result.get('messages', {}).get('error', ['Unknown error'])
+                    logger.error(f"Failed to delete task {task_id}: {error_msg}")
+                    return False
+                logger.info(f"Successfully deleted task {task_id} via modify endpoint")
+                return True
+            else:
+                logger.info(f"Successfully deleted task {task_id}")
+                return True
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error deleting task {task_id}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response: {e.response.text}")
+            return False
+    
+    @retry_with_backoff()
+    @rate_limit
+    def delete_project(self, project_id: int) -> bool:
+        """
+        Delete a project in Scoro
+        
+        Args:
+            project_id: ID of the project to delete
+        
+        Returns:
+            True if deletion was successful, False otherwise
+        """
+        try:
+            # Use the delete endpoint per Scoro API documentation
+            endpoint = f'projects/delete/{project_id}'
+            
+            request_body = self._build_request_body({})
+            
+            response = requests.post(
+                f'{self.base_url}{endpoint}',
+                headers=self.headers,
+                json=request_body
+            )
+            response.raise_for_status()
+            result = response.json()
+            
+            # Handle response structure
+            if isinstance(result, dict):
+                if result.get('status') == 'OK':
+                    logger.info(f"Successfully deleted project {project_id}")
+                    return True
+                elif result.get('status') == 'ERROR':
+                    error_msg = result.get('messages', {}).get('error', ['Unknown error'])
+                    logger.error(f"Failed to delete project {project_id}: {error_msg}")
+                    return False
+                else:
+                    logger.info(f"Successfully deleted project {project_id}")
+                    return True
+            else:
+                logger.info(f"Successfully deleted project {project_id}")
+                return True
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error deleting project {project_id}: {e}")
             if hasattr(e, 'response') and e.response is not None:
                 logger.error(f"Response: {e.response.text}")
             return False

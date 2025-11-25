@@ -34,10 +34,36 @@ DEFAULT_BATCH_SIZE = 100
 MAX_WORKERS = 10  # Number of parallel workers for concurrent API calls
 
 # Test mode configuration - limit number of tasks to migrate (set to None to migrate all tasks)
-TEST_MODE_MAX_TASKS = None  # Set to None for PRODUCTION - migrate all tasks
+TEST_MODE_MAX_TASKS = 10  # Set to None for PRODUCTION - migrate all tasks
+
+
+# Projects to migrate
+# Option 1: Use project GIDs (faster, no search needed)
+PROJECT_GIDS = [
+    # Add more project GIDs here
+    "1207816263671761",  # Van Zeeland Nursery & Landscape
+    # "1209020289079877",  # Exscape (VIP)
+    # "1201994636901967",  # BTS (VIP)
+    # "1211389004379875",  # Ethoscapes [VIP]
+    # "1209371228065321",  # Heritage Landscapes (VIP)
+]
+
+Backup_Scoro_Project_ID = [
+  "150"
+]
+
+# Option 2: Use project names (will search for projects by name)
+PROJECT_NAMES = [
+    # "Van Zeeland Nursery & Landscape",  # Example project 1
+    # "Another Project Name",  # Example project 2
+    # Add more project names here
+]
+
+# Workspace GID (required for Asana API)
+WORKSPACE_GID = "10447183158961"
 
 # Date cutoff for task filtering
-CUTOFF_DATE = datetime(2010, 7, 1)  # Naive datetime for comparison
+CUTOFF_DATE = datetime(2001, 7, 1)  # Naive datetime for comparison
 
 # Valid Scoro users and user mapping
 VALID_SCORO_USERS = {
@@ -67,26 +93,6 @@ ENV_ASANA_ACCESS_TOKEN = 'ASANA_ACCESS_TOKEN'
 ENV_SCORO_API_KEY = 'SCORO_API_KEY'
 ENV_SCORO_COMPANY_NAME = 'SCORO_COMPANY_NAME'
 
-# Projects to migrate
-# Option 1: Use project GIDs (faster, no search needed)
-PROJECT_GIDS = [
-    # Add more project GIDs here
-    # "1207816263671761",  # Van Zeeland Nursery & Landscape
-    "1209020289079877",  # Exscape (VIP)
-    "1201994636901967",  # BTS (VIP)
-    "1211389004379875",  # Ethoscapes [VIP]
-    "1209371228065321",  # Heritage Landscapes (VIP)
-]
-
-# Option 2: Use project names (will search for projects by name)
-PROJECT_NAMES = [
-    # "Van Zeeland Nursery & Landscape",  # Example project 1
-    # "Another Project Name",  # Example project 2
-    # Add more project names here
-]
-
-# Workspace GID (required for Asana API)
-WORKSPACE_GID = "10447183158961"
 
 # Migration mode: use 'gids' to migrate by GID list, 'names' to migrate by name list
 MIGRATION_MODE = 'gids'  # Options: 'gids' or 'names'
