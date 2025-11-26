@@ -736,23 +736,65 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             
             # If task is completed but has no time entries, create a 00:00 time entry
             # This allows us to mark the task as completed in Scoro (which requires time entries)
-            if completed and completed_at and not has_calculated_time_entries:
+            # FIX: Handle missing completed_at by using fallback dates (created_at or modified_at)
+            if completed and not has_calculated_time_entries:
                 # Create a dummy 00:00 time entry for completed tasks without time tracking
-                # Use completion datetime for the time entry
+                # Use completion datetime for the time entry, with fallback to created_at or modified_at
                 completion_dt = None
-                try:
-                    if isinstance(completed_at, str):
-                        if 'T' in completed_at:
-                            completion_dt = datetime.fromisoformat(completed_at.replace('Z', '+00:00'))
+                
+                # Try to use completed_at first
+                if completed_at:
+                    try:
+                        if isinstance(completed_at, str):
+                            if 'T' in completed_at:
+                                completion_dt = datetime.fromisoformat(completed_at.replace('Z', '+00:00'))
+                            else:
+                                # Date only, use completion date at 00:00:00
+                                completion_dt = datetime.strptime(completed_at.split()[0], '%Y-%m-%d')
                         else:
-                            # Date only, use completion date at 00:00:00
-                            completion_dt = datetime.strptime(completed_at.split()[0], '%Y-%m-%d')
-                    else:
-                        completion_dt = completed_at
-                except Exception as e:
-                    logger.debug(f"    Could not parse completed_at: {completed_at}, error: {e}")
-                    # Fallback to current datetime
+                            completion_dt = completed_at
+                    except Exception as e:
+                        logger.debug(f"    Could not parse completed_at: {completed_at}, error: {e}")
+                        completion_dt = None
+                
+                # Fallback to modified_at if completed_at is not available
+                if completion_dt is None:
+                    modified_at = task.get('modified_at')
+                    if modified_at:
+                        try:
+                            if isinstance(modified_at, str):
+                                if 'T' in modified_at:
+                                    completion_dt = datetime.fromisoformat(modified_at.replace('Z', '+00:00'))
+                                else:
+                                    completion_dt = datetime.strptime(modified_at.split()[0], '%Y-%m-%d')
+                            else:
+                                completion_dt = modified_at
+                            logger.debug(f"    Using modified_at as fallback for completed_at: {modified_at}")
+                        except Exception as e:
+                            logger.debug(f"    Could not parse modified_at: {modified_at}, error: {e}")
+                            completion_dt = None
+                
+                # Final fallback to created_at if both completed_at and modified_at are unavailable
+                if completion_dt is None:
+                    created_at = task.get('created_at')
+                    if created_at:
+                        try:
+                            if isinstance(created_at, str):
+                                if 'T' in created_at:
+                                    completion_dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                                else:
+                                    completion_dt = datetime.strptime(created_at.split()[0], '%Y-%m-%d')
+                            else:
+                                completion_dt = created_at
+                            logger.debug(f"    Using created_at as fallback for completed_at: {created_at}")
+                        except Exception as e:
+                            logger.debug(f"    Could not parse created_at: {created_at}, error: {e}")
+                            completion_dt = None
+                
+                # Ultimate fallback to current datetime if all else fails
+                if completion_dt is None:
                     completion_dt = datetime.now()
+                    logger.warning(f"    ⚠ No completion datetime available, using current datetime as fallback")
                 
                 # Use completion datetime for both start and end (00:00 duration)
                 completion_datetime_str = completion_dt.isoformat()
@@ -781,10 +823,12 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                 has_calculated_time_entries = True
                 logger.info(f"    Created 00:00 time entry for completed task without time tracking")
             
-            if completed and completed_at and has_calculated_time_entries:
+            # Store completion info in time entries for later update (even if completed_at is None)
+            if completed and has_calculated_time_entries:
                 # Store completion info in the time entries for later update
                 for time_entry in calculated_time_entries:
                     time_entry['should_complete_task'] = True
+                    # Store completed_at if available, otherwise None (will use fallback in importer)
                     time_entry['task_completed_at'] = completed_at
                 logger.debug(f"    Task will be marked as completed (task_status9) after time entry creation")
             elif has_calculated_time_entries and not completed:

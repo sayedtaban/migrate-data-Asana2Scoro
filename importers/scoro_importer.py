@@ -3,13 +3,14 @@ Import functionality for importing transformed data into Scoro
 """
 import html
 import re
+import time
 from typing import Dict, Optional
 
 from clients.scoro_client import ScoroClient
 from clients.asana_client import AsanaClient
 from models import MigrationSummary
-from utils import logger, process_batch
-from config import DEFAULT_BATCH_SIZE, TEST_MODE_MAX_TASKS, PROFILE_USERNAME_MAPPING
+from utils import logger, process_batch, retry_with_backoff
+from config import DEFAULT_BATCH_SIZE, TEST_MODE_MAX_TASKS, PROFILE_USERNAME_MAPPING, MAX_RETRIES, RETRY_DELAY
 
 
 def replace_asana_profile_urls_with_scoro_mentions(
@@ -104,13 +105,19 @@ def replace_asana_profile_urls_with_scoro_mentions(
                 logger.debug(f"      Error during firstname-only lookup: {e}")
         
         if not scoro_user:
-            logger.warning(f"      Could not find Scoro user '{user_name}' for GID: {gid}, leaving URL as-is")
-            return url
+            # Scoro user not found - replace URL with plain name from mapping (no @ mention)
+            logger.warning(f"      Could not find Scoro user '{user_name}' for GID: {gid}, replacing URL with plain name")
+            # Escape HTML special characters in the name
+            user_name_escaped = html.escape(user_name)
+            return user_name_escaped
         
         user_id = scoro_user.get('id')
         if not user_id:
-            logger.warning(f"      Scoro user '{user_name}' found but no ID available, leaving URL as-is")
-            return url
+            # Scoro user found but no ID - replace URL with plain name from mapping (no @ mention)
+            logger.warning(f"      Scoro user '{user_name}' found but no ID available, replacing URL with plain name")
+            # Escape HTML special characters in the name
+            user_name_escaped = html.escape(user_name)
+            return user_name_escaped
         
         logger.debug(f"      Found Scoro user '{user_name}' with ID: {user_id}")
         
@@ -173,6 +180,47 @@ def replace_asana_profile_urls_with_scoro_mentions(
                 result = f'<p>{result}</p>'
     
     return result
+
+
+def update_task_status_with_retry(
+    scoro_client: ScoroClient,
+    task_id: int,
+    task_update_data: Dict,
+    max_retries: int = MAX_RETRIES,
+    retry_delay: float = RETRY_DELAY
+) -> Optional[Dict]:
+    """
+    Update task status with retry logic to ensure completion status is properly set.
+    
+    Args:
+        scoro_client: Scoro client instance
+        task_id: Scoro task ID
+        task_update_data: Task update data dictionary
+        max_retries: Maximum number of retry attempts
+        retry_delay: Delay between retries in seconds
+    
+    Returns:
+        Updated task dictionary if successful, None otherwise
+    """
+    retries = 0
+    current_delay = retry_delay
+    
+    while retries < max_retries:
+        try:
+            updated_task = scoro_client.create_task(task_update_data, task_id=task_id)
+            return updated_task
+        except Exception as e:
+            retries += 1
+            if retries >= max_retries:
+                logger.error(f"    ✗ Failed to update task status after {max_retries} retries: {e}")
+                return None
+            
+            logger.warning(f"    ⚠ Failed to update task status (attempt {retries}/{max_retries}): {e}")
+            time.sleep(current_delay)
+            current_delay *= 2  # Exponential backoff
+    
+    return None
+
 
 def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: MigrationSummary, 
                      batch_size: int = DEFAULT_BATCH_SIZE, asana_client: Optional[AsanaClient] = None,
@@ -829,9 +877,32 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                     task_id_int = int(task_id_value)
                                     if task_id_int > 0:  # Valid task IDs should be positive
                                         scoro_task_id = task_id_int
+                                        logger.debug(f"    Extracted task ID from field '{field_name}': {scoro_task_id}")
                                         break
                                 except (ValueError, TypeError):
                                     continue
+                        
+                        # If task ID still not found, log warning and try to extract from nested data
+                        if scoro_task_id is None:
+                            logger.warning(f"    ⚠ Task ID not found in standard fields, checking nested data...")
+                            # Try to extract from nested 'data' field
+                            if isinstance(task, dict) and 'data' in task:
+                                data = task.get('data', {})
+                                for field_name in ['event_id', 'task_id', 'id', 'eventId', 'taskId']:
+                                    task_id_value = data.get(field_name)
+                                    if task_id_value is not None:
+                                        try:
+                                            task_id_int = int(task_id_value)
+                                            if task_id_int > 0:
+                                                scoro_task_id = task_id_int
+                                                logger.debug(f"    Extracted task ID from nested data field '{field_name}': {scoro_task_id}")
+                                                break
+                                        except (ValueError, TypeError):
+                                            continue
+                            
+                            if scoro_task_id is None:
+                                logger.error(f"    ✗ Could not extract task ID from response. Task may not be properly created.")
+                                logger.debug(f"    Response keys: {list(task.keys()) if isinstance(task, dict) else 'Not a dict'}")
                         
                         # Create time entries if task has calculated_time_entries
                         # These are from Asana Time Tracking Entries API
@@ -841,6 +912,9 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                         asana_completed = task_data.get('_asana_completed', False)
                         asana_completed_at = task_data.get('_asana_completed_at')
                         has_calculated_time_entries = task_data.get('_has_calculated_time_entries', len(calculated_time_entries) > 0)
+                        
+                        # Track if time entries were successfully created
+                        time_entries_created_successfully = False
                         
                         if calculated_time_entries and scoro_task_id is not None:
                             try:
@@ -897,54 +971,95 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                     logger.info(f"    ✓ [{idx}/{len(calculated_time_entries)}] Time entry created: {calculated_time_entry.get('duration')}")
                                     logger.debug(f"      Time entry ID: {time_entry.get('time_entry_id', 'Unknown')}")
                                 
-                                # Update task status based on new algorithm:
-                                # - If completed AND has calculated_time_entries → task_status9 (Completed)
-                                # - If has calculated_time_entries AND not completed → task_status3 (In progress)
-                                # - If no calculated_time_entries AND not completed → task_status1 (Planned) - no update needed
-                                try:
-                                    task_update_data = {}
-                                    should_update_status = False
-                                    
-                                    if asana_completed and has_calculated_time_entries:
-                                        # Task is completed AND has time entries → task_status9 (Completed)
-                                        logger.info(f"    Updating task status to completed (task_status9)...")
-                                        task_update_data = {
-                                            'is_completed': True,
-                                            'status': 'task_status9',  # Completed status
-                                        }
-                                        should_update_status = True
-                                        
-                                        # Add completion datetime if available
-                                        if asana_completed_at:
-                                            if isinstance(asana_completed_at, str):
-                                                try:
-                                                    if 'T' not in asana_completed_at:
-                                                        asana_completed_at = f"{asana_completed_at}T00:00:00"
-                                                    task_update_data['datetime_completed'] = asana_completed_at
-                                                except Exception as e:
-                                                    logger.debug(f"      Could not parse datetime_completed: {e}")
-                                    elif has_calculated_time_entries and not asana_completed:
-                                        # Task has time entries AND not completed → task_status3 (In progress)
-                                        logger.info(f"    Updating task status to in progress (task_status3)...")
-                                        task_update_data = {
-                                            'status': 'task_status3',  # In progress status
-                                        }
-                                        should_update_status = True
-                                    
-                                    # Update task status if needed
-                                    if should_update_status:
-                                        updated_task = scoro_client.create_task(task_update_data, task_id=scoro_task_id)
-                                        status_name = 'completed' if asana_completed else 'in progress'
-                                        logger.info(f"    ✓ Task status updated to {status_name}")
-                                        
-                                except Exception as e:
-                                    logger.warning(f"    ⚠ Failed to update task status: {e}")
+                                time_entries_created_successfully = True
                                 
                             except Exception as e:
                                 # Log warning but don't fail the entire task
                                 logger.warning(f"    ⚠ Failed to create time entries for task: {e}")
+                                # For completed tasks, we'll still attempt status update as fallback
+                                if asana_completed:
+                                    logger.info(f"    Will attempt status update for completed task despite time entry creation failure")
                         elif calculated_time_entries and not scoro_task_id:
                             logger.warning(f"    ⚠ Cannot create time entries: Task ID not available in response")
+                            # For completed tasks, we'll still attempt status update as fallback
+                            if asana_completed:
+                                logger.info(f"    Will attempt status update for completed task despite missing task ID")
+                        
+                        # Update task status based on new algorithm:
+                        # - If completed AND has calculated_time_entries → task_status9 (Completed)
+                        # - If has calculated_time_entries AND not completed → task_status3 (In progress)
+                        # - If no calculated_time_entries AND not completed → task_status1 (Planned) - no update needed
+                        # FIX: Also attempt status update for completed tasks even if time entry creation failed
+                        try:
+                            task_update_data = {}
+                            should_update_status = False
+                            
+                            # Check if we should update status to completed
+                            # For completed tasks, attempt update if:
+                            # 1. Time entries were created successfully, OR
+                            # 2. Time entry creation failed but task is marked completed (fallback)
+                            if asana_completed:
+                                if time_entries_created_successfully or has_calculated_time_entries:
+                                    # Task is completed AND has time entries (or attempted) → task_status9 (Completed)
+                                    logger.info(f"    Updating task status to completed (task_status9)...")
+                                    task_update_data = {
+                                        'is_completed': True,
+                                        'status': 'task_status9',  # Completed status
+                                    }
+                                    should_update_status = True
+                                    
+                                    # Add completion datetime if available
+                                    if asana_completed_at:
+                                        if isinstance(asana_completed_at, str):
+                                            try:
+                                                if 'T' not in asana_completed_at:
+                                                    asana_completed_at = f"{asana_completed_at}T00:00:00"
+                                                task_update_data['datetime_completed'] = asana_completed_at
+                                            except Exception as e:
+                                                logger.debug(f"      Could not parse datetime_completed: {e}")
+                                elif not time_entries_created_successfully:
+                                    # Fallback: Attempt to mark as completed even without time entries
+                                    # This handles edge cases where time entry creation failed
+                                    logger.warning(f"    ⚠ Attempting to mark completed task without time entries (fallback mode)")
+                                    task_update_data = {
+                                        'is_completed': True,
+                                        'status': 'task_status9',  # Completed status
+                                    }
+                                    should_update_status = True
+                                    
+                                    if asana_completed_at:
+                                        if isinstance(asana_completed_at, str):
+                                            try:
+                                                if 'T' not in asana_completed_at:
+                                                    asana_completed_at = f"{asana_completed_at}T00:00:00"
+                                                task_update_data['datetime_completed'] = asana_completed_at
+                                            except Exception as e:
+                                                logger.debug(f"      Could not parse datetime_completed: {e}")
+                            elif has_calculated_time_entries and not asana_completed:
+                                # Task has time entries AND not completed → task_status3 (In progress)
+                                logger.info(f"    Updating task status to in progress (task_status3)...")
+                                task_update_data = {
+                                    'status': 'task_status3',  # In progress status
+                                }
+                                should_update_status = True
+                            
+                            # Update task status if needed (with retry logic)
+                            if should_update_status and scoro_task_id is not None:
+                                updated_task = update_task_status_with_retry(
+                                    scoro_client,
+                                    scoro_task_id,
+                                    task_update_data
+                                )
+                                if updated_task:
+                                    status_name = 'completed' if asana_completed else 'in progress'
+                                    logger.info(f"    ✓ Task status updated to {status_name}")
+                                else:
+                                    logger.error(f"    ✗ Failed to update task status after retries")
+                            elif should_update_status and scoro_task_id is None:
+                                logger.error(f"    ✗ Cannot update task status: Task ID not available")
+                                
+                        except Exception as e:
+                            logger.error(f"    ✗ Failed to update task status: {e}")
                         
                         # Create comments separately via Scoro Comments API
                         if stories and scoro_task_id is not None:
