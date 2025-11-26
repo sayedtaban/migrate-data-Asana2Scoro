@@ -215,7 +215,7 @@ def update_task_status_with_retry(
                 logger.error(f"    ✗ Failed to update task status after {max_retries} retries: {e}")
                 return None
             
-            logger.warning(f"    ⚠ Failed to update task status (attempt {retries}/{max_retries}): {e}")
+            logger.error(f"    ⚠ Failed to update task status (attempt {retries}/{max_retries}): {e}")
             time.sleep(current_delay)
             current_delay *= 2  # Exponential backoff
     
@@ -378,7 +378,7 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                         logger.info(f"  ✓ Set {resolved_count} project members (IDs: {project_user_ids})")
                     
                     if failed_count > 0:
-                        logger.warning(f"  ⚠ Failed to resolve {failed_count} project members")
+                        logger.error(f"  ⚠ Failed to resolve {failed_count} project members")
                 else:
                     logger.debug("  No project members found in project data")
                 
@@ -499,7 +499,7 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                     import_results['errors'].append(error_msg)
                     summary.add_failure(error_msg)
             else:
-                logger.warning("Cannot add milestones: Project ID not available")
+                logger.error("Cannot add milestones: Project ID not available")
                 logger.debug(f"  Project response keys: {list(import_results['project'].keys()) if import_results['project'] else 'No project'}")
         elif milestones_to_import and not import_results['project']:
             logger.warning(f"Cannot create {len(milestones_to_import)} milestones: Project creation failed")
@@ -975,12 +975,12 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                 
                             except Exception as e:
                                 # Log warning but don't fail the entire task
-                                logger.warning(f"    ⚠ Failed to create time entries for task: {e}")
+                                logger.error(f"    ⚠ Failed to create time entries for task: {e}")
                                 # For completed tasks, we'll still attempt status update as fallback
                                 if asana_completed:
                                     logger.info(f"    Will attempt status update for completed task despite time entry creation failure")
                         elif calculated_time_entries and not scoro_task_id:
-                            logger.warning(f"    ⚠ Cannot create time entries: Task ID not available in response")
+                            logger.error(f"    ⚠ Cannot create time entries: Task ID not available in response")
                             # For completed tasks, we'll still attempt status update as fallback
                             if asana_completed:
                                 logger.info(f"    Will attempt status update for completed task despite missing task ID")
