@@ -369,8 +369,6 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
         # Transform sections to phases
         # Asana sections (columns) should be migrated as Scoro phases (type="phase")
         # This is different from milestones which are migrated as type="milestone"
-        # Also create a mapping of section GID to section name for task assignment
-        section_name_map = {}  # Map section GID to section name for task phase assignment
         sections_to_transform = asana_data.get('sections', [])
         if sections_to_transform:
             logger.info(f"Transforming {len(sections_to_transform)} sections to phases...")
@@ -378,10 +376,6 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             for idx, section in enumerate(sections_to_transform, 1):
                 section_name = section.get('name', 'Unknown')
                 section_gid = section.get('gid', '')
-                
-                # Store mapping for task assignment
-                if section_gid:
-                    section_name_map[section_gid] = section_name
                 
                 # Create phase from section
                 # Sections don't have dates in Asana, so we won't set start_date/end_date
@@ -418,9 +412,6 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             }
             transformed_data['phases'].append(misc_phase)
             logger.info("✓ Added default 'Misc' phase for tasks without sections")
-        
-        # Store section name mapping for use in task transformation
-        transformed_data['section_name_map'] = section_name_map
         
         # Transform tasks
         tasks_to_transform = asana_data.get('tasks', [])
@@ -553,55 +544,18 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             pm_name = extract_custom_field_value(task, 'PM Name') or extract_custom_field_value(task, 'PM')
             category = extract_custom_field_value(task, 'Category') or extract_custom_field_value(task, 'Activity Type')
             
-            # Get section from memberships
-            # This is critical: tasks should be assigned to the phase that corresponds to their Asana section
-            section = None
-            section_gid = None
-            memberships = task.get('memberships', [])
+            # Get section from assigned section (set during export when fetching tasks per section)
+            # This is the primary and reliable method: section was assigned when task was fetched from section
+            section = task.get('_assigned_section_name')
+            section_gid = task.get('_assigned_section_gid')
             
-            # Debug: Log membership structure to understand the data format
-            if memberships:
-                logger.debug(f"    Task has {len(memberships)} membership(s)")
-                for idx, membership in enumerate(memberships):
-                    logger.debug(f"      Membership {idx+1}: {membership}")
+            if section:
+                logger.debug(f"    Task has assigned section: '{section}' (GID: {section_gid})")
             else:
-                logger.debug(f"    Task has no memberships field or memberships is empty")
-            
-            if memberships:
-                for membership in memberships:
-                    if isinstance(membership, dict):
-                        project_membership = membership.get('project', {})
-                        if project_membership:
-                            section_obj = membership.get('section')
-                            if section_obj:
-                                if isinstance(section_obj, dict):
-                                    section = section_obj.get('name', '')
-                                    section_gid = section_obj.get('gid', '')
-                                    logger.debug(f"    Found section from membership: '{section}' (GID: {section_gid})")
-                                elif hasattr(section_obj, 'name'):
-                                    section = section_obj.name
-                                    section_gid = getattr(section_obj, 'gid', '')
-                                    logger.debug(f"    Found section from membership (object): '{section}' (GID: {section_gid})")
-                                else:
-                                    logger.debug(f"    Section object found but format unexpected: {type(section_obj)} - {section_obj}")
-                            else:
-                                logger.debug(f"    Membership has project but no section: {membership}")
-                            break
-                    else:
-                        logger.debug(f"    Membership is not a dict: {type(membership)} - {membership}")
-            
-            # Also try assignee_section as fallback (some Asana API responses use this field)
-            if not section:
-                assignee_section = task.get('assignee_section')
-                if assignee_section:
-                    if isinstance(assignee_section, dict):
-                        section = assignee_section.get('name', '')
-                        section_gid = assignee_section.get('gid', '')
-                        logger.debug(f"    Found section from assignee_section: '{section}' (GID: {section_gid})")
-                    elif hasattr(assignee_section, 'name'):
-                        section = assignee_section.name
-                        section_gid = getattr(assignee_section, 'gid', '')
-                        logger.debug(f"    Found section from assignee_section (object): '{section}' (GID: {section_gid})")
+                # Note: Asana API doesn't reliably return memberships or assignee_section,
+                # so we don't attempt fallback extraction. Tasks without assigned section
+                # will be assigned to "Misc" phase.
+                logger.debug(f"    Task has no assigned section (will use 'Misc' phase)")
             
             # Map activity type using category mapping
             activity_type = smart_map_activity_and_tracking(title, category, section)
@@ -624,7 +578,7 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                     project_phase = section_trimmed
                     logger.info(f"    Task from section '{section}' (GID: {section_gid}) → assigned to phase: '{project_phase}'")
             else:
-                # Assign to "Misc" phase if no section (don't use smart_map_phase)
+                # Assign to "Misc" phase if no section (task was not in any section in Asana)
                 filled_phase += 1
                 project_phase = 'Misc'
                 logger.info(f"    Task has no section → assigned to 'Misc' phase")

@@ -209,9 +209,62 @@ class AsanaClient:
     
     @retry_with_backoff()
     @rate_limit
+    def get_tasks_for_section(self, section_gid: str) -> List[Dict]:
+        """
+        Get all tasks for a specific section
+        
+        Args:
+            section_gid: Section GID
+        
+        Returns:
+            List of task dictionaries
+        """
+        try:
+            # Enhanced field list to get all available task data
+            # Note: We don't request memberships here since section is assigned during export
+            opt_fields = [
+                'gid', 'name', 'actual_time_minutes', 'notes', 'html_notes', 'due_on', 'due_at', 
+                'start_on', 'start_at', 'assignee', 'assignee.name', 'assignee_status', 'completed', 
+                'completed_at', 'created_at', 'modified_at', 'created_by', 'completed_by', 
+                'completed_by.name', 'custom_fields', 'parent', 'tags', 'tags.name', 'followers', 
+                'followers.name', 'dependencies', 'dependents', 'num_subtasks', 'num_likes', 'liked', 
+                'resource_subtype', 'workspace', 'workspace.name', 'projects', 'projects.name', 
+                'permalink_url'
+            ]
+            
+            opts = {
+                'limit': 100,
+                'opt_fields': ','.join(opt_fields)
+            }
+            tasks = self.tasks_api.get_tasks_for_section(section_gid, opts)
+            task_list = []
+            for task in tasks:
+                task_dict = task.to_dict() if hasattr(task, 'to_dict') else dict(task)
+                task_list.append(task_dict)
+            logger.debug(f"Retrieved {len(task_list)} tasks for section {section_gid}")
+            return task_list
+        except ApiException as e:
+            status = e.status if hasattr(e, 'status') else 'Unknown'
+            if status == 401:
+                error_msg = "Authentication failed. Please check your ASANA_ACCESS_TOKEN."
+                logger.error(error_msg)
+                raise ValueError(error_msg) from e
+            logger.warning(f"API error retrieving tasks for section {section_gid} (Status {status}): {e}")
+            return []
+        except Exception as e:
+            logger.warning(f"Error retrieving tasks for section {section_gid}: {e}")
+            return []
+    
+    @retry_with_backoff()
+    @rate_limit
     def get_project_tasks(self, project_gid: str, include_subtasks: bool = True) -> List[Dict]:
         """
         Get all tasks for a project with comprehensive field extraction
+        
+        NOTE: This method is not used in the main migration workflow.
+        The workflow now uses get_tasks_for_section() to fetch tasks per section
+        and assign section names directly. This method is kept for backward compatibility
+        or alternative use cases.
         
         Args:
             project_gid: Project GID

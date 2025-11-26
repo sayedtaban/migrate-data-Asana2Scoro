@@ -63,33 +63,73 @@ def export_asana_project(asana_client: AsanaClient, project_name: Optional[str] 
             logger.error("Either project_name or project_gid must be provided")
             raise ValueError("Either project_name or project_gid must be provided")
         
-        # Get all tasks
+        # Get sections first (needed to fetch tasks per section)
         step_num = "3/5" if project_name else "2/5"
-        logger.info(f"Step {step_num}: Retrieving project tasks...")
-        tasks = asana_client.get_project_tasks(project_gid)
+        logger.info(f"Step {step_num}: Retrieving project sections...")
+        sections = asana_client.get_project_sections(project_gid)
+        logger.info(f"✓ Found {len(sections)} sections in project")
+        
+        # Get tasks per section and assign section names
+        step_num = "4/5" if project_name else "3/5"
+        logger.info(f"Step {step_num}: Retrieving tasks from each section...")
+        print(f"Step {step_num}: Retrieving tasks from each section...")
+        
+        # Track tasks by GID to handle duplicates (if a task appears in multiple sections)
+        tasks_by_gid = {}
+        
+        # Fetch tasks from each section
+        for idx, section in enumerate(sections, 1):
+            section_gid = section.get('gid', '')
+            section_name = section.get('name', 'Unknown')
+            
+            if not section_gid:
+                logger.warning(f"  Section {idx} has no GID, skipping")
+                continue
+            
+            logger.info(f"  [{idx}/{len(sections)}] Fetching tasks from section: '{section_name}' (GID: {section_gid})")
+            print(f"  [{idx}/{len(sections)}] Fetching tasks from section: '{section_name}'")
+            
+            try:
+                section_tasks = asana_client.get_tasks_for_section(section_gid)
+                logger.info(f"    Found {len(section_tasks)} tasks in section '{section_name}'")
+                
+                # Assign section name to each task
+                for task in section_tasks:
+                    task_gid = task.get('gid', '')
+                    if task_gid:
+                        # If task already exists (from another section), keep the first one
+                        # but log it for reference
+                        if task_gid in tasks_by_gid:
+                            existing_section = tasks_by_gid[task_gid].get('_assigned_section_name', 'Unknown')
+                            logger.debug(f"    Task '{task.get('name', 'Unknown')}' (GID: {task_gid}) already found in section '{existing_section}', keeping first assignment")
+                        else:
+                            # Assign section name to task
+                            task['_assigned_section_name'] = section_name
+                            task['_assigned_section_gid'] = section_gid
+                            tasks_by_gid[task_gid] = task
+            except Exception as e:
+                logger.warning(f"    ⚠ Error fetching tasks from section '{section_name}': {e}")
+                continue
+        
+        # Convert to list
+        tasks = list(tasks_by_gid.values())
         original_task_count = len(tasks)
+        
+        logger.info(f"✓ Found {len(tasks)} unique tasks across all sections")
         
         # Apply test mode limit if specified
         if max_tasks is not None and max_tasks > 0 and len(tasks) > max_tasks:
             tasks = tasks[:max_tasks]
             logger.info(f"⚠ TEST MODE: Limiting task export to {max_tasks} tasks (out of {original_task_count} total tasks)")
         
-        logger.info(f"✓ Found {len(tasks)} tasks in project")
-        
-        # Get sections
-        step_num = "4/5" if project_name else "3/5"
-        logger.info(f"Step {step_num}: Retrieving project sections...")
-        sections = asana_client.get_project_sections(project_gid)
-        logger.info(f"✓ Found {len(sections)} sections in project")
-        
         # Get milestones
-        step_num = "5/7" if project_name else "4/7"
+        step_num = "5/8" if project_name else "4/8"
         logger.info(f"Step {step_num}: Retrieving project milestones...")
         milestones = asana_client.get_project_milestones(project_gid)
         logger.info(f"✓ Found {len(milestones)} milestones in project")
         
         # Get detailed task information with subtasks, dependencies, attachments, and comments
-        step_num = "6/7" if project_name else "5/7"
+        step_num = "6/8" if project_name else "5/8"
         logger.info(f"Step {step_num}: Retrieving detailed task information...")
         detailed_tasks = []
         total_tasks = len(tasks)
@@ -99,8 +139,19 @@ def export_asana_project(asana_client: AsanaClient, project_name: Optional[str] 
                 task_gid = task.get('gid', '')
                 logger.info(f"  [{idx}/{total_tasks}] Retrieving details for task: {task_name}")
                 print(f"  [{idx}/{total_tasks}] Retrieving details for task: {task_name}")
+                
+                # Preserve assigned section information before getting details
+                assigned_section_name = task.get('_assigned_section_name')
+                assigned_section_gid = task.get('_assigned_section_gid')
+                
                 # Get full detailed task info (includes dependencies, tags, etc.)
                 detailed_task = asana_client.get_task_details(task_gid)
+                
+                # Restore assigned section information (get_task_details may overwrite it)
+                if assigned_section_name:
+                    detailed_task['_assigned_section_name'] = assigned_section_name
+                if assigned_section_gid:
+                    detailed_task['_assigned_section_gid'] = assigned_section_gid
                 
                 # Get subtasks if this is a parent task
                 if detailed_task.get('num_subtasks', 0) > 0:
@@ -123,7 +174,7 @@ def export_asana_project(asana_client: AsanaClient, project_name: Optional[str] 
                 logger.debug(f"    ✓ Retrieved details for task: {task_name} (subtasks: {len(detailed_task.get('subtasks', []))}, attachments: {len(attachments)}, comments: {len(stories)}, time entries: {len(time_tracking_entries)})")
             except Exception as e:
                 logger.warning(f"    ⚠ Could not retrieve details for task {task.get('name', task.get('gid'))}: {e}")
-                # Fall back to basic task data
+                # Fall back to basic task data (assigned section info is already in task)
                 task['subtasks'] = []
                 task['attachments'] = []
                 task['stories'] = []

@@ -46,9 +46,9 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # Option 1: Use project GIDs (faster, no search needed)
 PROJECT_GIDS = [
     # Add more project GIDs here
-    "1207816263671761",  # Van Zeeland Nursery & Landscape
+    # "1207816263671761",  # Van Zeeland Nursery & Landscape
     # "1209020289079877",  # Exscape (VIP)
-    # "1201994636901967",  # BTS (VIP)
+    "1201994636901967",  # BTS (VIP)
     # "1211389004379875",  # Ethoscapes [VIP]
     # "1209371228065321",  # Heritage Landscapes (VIP)
 ]
@@ -77,7 +77,7 @@ VALID_SCORO_USERS = {
     'Kelsey Blomquist-Wright', 'Lauren Cullnan', 'Matej Robar', 'Polina Kroyter',
     'Taryn Himmelright', 'Tiffney Ma', 'Tracy Hart', 'Christine Holz',
     'Corey Halstead', 'Dani Cervantes', 'Devon Stank', 'Elizabeth Wood',
-    'Ellie Troughton', 'Giorgi Goguadze', 'Jim McGorry', 'Katya Pankov',
+    'Ellie Troughton', 'Giorgi Goguadze', 'Jim McGrorry', 'Katya Pankov',
     'Lena Lebid', 'Lindsey Cartwright', 'Martina Willis', 'Matteo Banfo',
     'Mylessia Tkacs', 'Olivia Mello'
 }
@@ -226,5 +226,57 @@ PROFILE_USERNAME_MAPPING = [
   {
     "name": "Taryn Himmelright",
     "asana_url": "https://app.asana.com/0/profile/1210804863139837"
+  },
+  {
+    "name": "Lauren Cullnan",
+    "asana_url": "https://app.asana.com/0/profile/1202400906089987"
+  },
+  {
+    "name": "Matteo Banfo",
+    "asana_url": "https://app.asana.com/0/profile/1163326161975925"
+  },
+  {
+    "name": "Shane",
+    "asana_url": "https://app.asana.com/0/profile/1201319977684086"
+  },
+  {
+    "name": "Hannah",
+    "asana_url": "https://app.asana.com/0/profile/1207659194399796"
+  },
+  {
+    "name": "Alejandra",
+    "asana_url": "https://app.asana.com/0/profile/1207665658939814"
+  },
+  {
+    "name": "Rachel Sanpakit",
+    "asana_url": "https://app.asana.com/0/profile/1207826681290603"
+  },
+  {
+    "name": "George ",
+    "asana_url": "https://app.asana.com/0/profile/1208771038183777"
+  },
+  {
+    "name": "Tena",
+    "asana_url": "https://app.asana.com/0/profile/1209264874946823"
+  },
+  {
+    "name": "Jeffrey",
+    "asana_url": "https://app.asana.com/0/profile/1209276867222044"
+  },
+  {
+    "name": "Timofei",
+    "asana_url": "https://app.asana.com/0/profile/1209489338708948"
+  },
+  {
+    "name": "Kia",
+    "asana_url": "https://app.asana.com/0/profile/1209589451922990"
+  },
+  {
+    "name": "Jim McGrorry",
+    "asana_url": "https://app.asana.com/0/profile/1210209261925896"
+  },
+  {
+    "name": "Delon",
+    "asana_url": "https://app.asana.com/0/profile/1211419910114508"
   }
 ]
