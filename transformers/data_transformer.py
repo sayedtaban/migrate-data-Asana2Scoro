@@ -1077,6 +1077,303 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                 }
             
             logger.debug(f"    ✓ Task transformed: {task_name}")
+            
+            # Process subtasks as separate tasks
+            # Subtasks will be created with parent_id linking to the parent task in Scoro
+            if subtasks and len(subtasks) > 0:
+                logger.info(f"    Processing {len(subtasks)} subtask(s) for task: {task_name}")
+                for subtask_idx, subtask in enumerate(subtasks, 1):
+                    try:
+                        subtask_gid = subtask.get('gid', '')
+                        subtask_name = subtask.get('name', 'Unknown')
+                        logger.debug(f"      [{subtask_idx}/{len(subtasks)}] Transforming subtask: {subtask_name}")
+                        
+                        # Transform subtask using similar logic to parent task
+                        # Subtasks inherit: project_name, project_phase, company from parent
+                        # But have their own: title, description, assignee, due date, etc.
+                        
+                        subtask_title = subtask.get('name', '').strip()
+                        if not subtask_title:
+                            logger.warning(f"      ⚠ Skipping subtask with no name (GID: {subtask_gid})")
+                            continue
+                        
+                        # Get subtask assignee
+                        subtask_assignee = None
+                        subtask_assignee_gid = None
+                        subtask_assignee_obj = subtask.get('assignee')
+                        if subtask_assignee_obj:
+                            if isinstance(subtask_assignee_obj, dict):
+                                subtask_assignee_gid = subtask_assignee_obj.get('gid')
+                                subtask_assignee = subtask_assignee_obj.get('name', '')
+                            elif hasattr(subtask_assignee_obj, 'gid'):
+                                subtask_assignee_gid = subtask_assignee_obj.gid
+                                subtask_assignee = subtask_assignee_obj.name if hasattr(subtask_assignee_obj, 'name') else None
+                            else:
+                                subtask_assignee = str(subtask_assignee_obj) if subtask_assignee_obj else None
+                            
+                            # If we have users map, try to get name from there
+                            users_map = asana_data.get('users', {})
+                            if subtask_assignee_gid and subtask_assignee_gid in users_map:
+                                user_details = users_map[subtask_assignee_gid]
+                                subtask_assignee = user_details.get('name', subtask_assignee)
+                            
+                            if not subtask_assignee or not str(subtask_assignee).strip():
+                                subtask_assignee = None
+                            else:
+                                subtask_assignee = str(subtask_assignee).strip()
+                        
+                        # Get subtask due date
+                        subtask_datetime_due = subtask.get('due_on') or subtask.get('due_at')
+                        if subtask_datetime_due:
+                            if isinstance(subtask_datetime_due, str):
+                                try:
+                                    if 'T' not in subtask_datetime_due:
+                                        subtask_datetime_due = f"{subtask_datetime_due}T00:00:00"
+                                except Exception as e:
+                                    logger.debug(f"      Could not parse subtask datetime_due: {subtask_datetime_due}, error: {e}")
+                                    subtask_datetime_due = None
+                            else:
+                                subtask_datetime_due = None
+                        else:
+                            subtask_datetime_due = None
+                        
+                        # Get subtask created_by for owner_id
+                        subtask_created_by_name = None
+                        subtask_created_by_gid = None
+                        subtask_created_by_obj = subtask.get('created_by')
+                        if subtask_created_by_obj:
+                            if isinstance(subtask_created_by_obj, dict):
+                                subtask_created_by_gid = subtask_created_by_obj.get('gid')
+                                subtask_created_by_name = subtask_created_by_obj.get('name', '')
+                            elif hasattr(subtask_created_by_obj, 'gid'):
+                                subtask_created_by_gid = subtask_created_by_obj.gid
+                                subtask_created_by_name = subtask_created_by_obj.name if hasattr(subtask_created_by_obj, 'name') else None
+                            else:
+                                subtask_created_by_name = str(subtask_created_by_obj) if subtask_created_by_obj else None
+                            
+                            users_map = asana_data.get('users', {})
+                            if subtask_created_by_gid and subtask_created_by_gid in users_map:
+                                user_details = users_map[subtask_created_by_gid]
+                                subtask_created_by_name = user_details.get('name', subtask_created_by_name)
+                            
+                            if not subtask_created_by_name or not str(subtask_created_by_name).strip():
+                                subtask_created_by_name = None
+                            else:
+                                subtask_created_by_name = str(subtask_created_by_name).strip()
+                        
+                        # Subtask owner_id comes from created_by if available, otherwise from assignee
+                        if subtask_created_by_name:
+                            subtask_owner = validate_user(subtask_created_by_name, default_to_tom=False)
+                        else:
+                            subtask_owner = validate_user(subtask_assignee, default_to_tom=False)
+                        
+                        # Get subtask description
+                        subtask_description = subtask.get('notes', '')
+                        if subtask_description:
+                            subtask_description = str(subtask_description).strip()
+                            if subtask_description:
+                                subtask_description = re.sub(r'<[^>]+>', '', subtask_description)
+                                subtask_description = subtask_description.replace('\n', '<br>')
+                            else:
+                                subtask_description = None
+                        else:
+                            subtask_description = None
+                        
+                        # Get subtask completion status
+                        subtask_completed = subtask.get('completed', False)
+                        subtask_completed_at = subtask.get('completed_at')
+                        
+                        # Get subtask time tracking entries
+                        subtask_time_tracking_entries = subtask.get('time_tracking_entries', [])
+                        subtask_calculated_time_entries = []
+                        subtask_total_duration_minutes = 0
+                        subtask_actual_time = None
+                        
+                        if subtask_time_tracking_entries:
+                            for entry in subtask_time_tracking_entries:
+                                try:
+                                    duration_minutes = entry.get('duration_minutes', 0)
+                                    if duration_minutes and duration_minutes > 0:
+                                        subtask_total_duration_minutes += int(duration_minutes)
+                                        
+                                        end_datetime_str = entry.get('created_at', '')
+                                        if not end_datetime_str:
+                                            continue
+                                        
+                                        if 'T' in end_datetime_str:
+                                            if end_datetime_str.endswith('Z'):
+                                                end_dt = datetime.fromisoformat(end_datetime_str.replace('Z', '+00:00'))
+                                            else:
+                                                end_dt = datetime.fromisoformat(end_datetime_str)
+                                        else:
+                                            end_dt = datetime.strptime(end_datetime_str.split()[0], '%Y-%m-%d')
+                                        
+                                        start_dt = end_dt - timedelta(minutes=int(duration_minutes))
+                                        start_datetime_str = start_dt.isoformat()
+                                        duration_hhmmss = convert_minutes_to_hhmmss(duration_minutes)
+                                        
+                                        user_name = None
+                                        created_by = entry.get('created_by', {})
+                                        if isinstance(created_by, dict):
+                                            user_name = created_by.get('name', '')
+                                        
+                                        time_entry = {
+                                            'start_datetime': start_datetime_str,
+                                            'end_datetime': end_datetime_str,
+                                            'duration': duration_hhmmss,
+                                            'is_completed': subtask_completed,
+                                            'completed_datetime': subtask_completed_at if subtask_completed else None,
+                                            'event_type': 'task',
+                                            'time_entry_type': 'task',
+                                            'billable_time_type': 'billable',
+                                        }
+                                        
+                                        if user_name:
+                                            time_entry['user_name'] = user_name
+                                        
+                                        subtask_calculated_time_entries.append(time_entry)
+                                except Exception as e:
+                                    logger.warning(f"      ⚠ Could not process subtask time tracking entry: {e}")
+                                    continue
+                            
+                            if subtask_total_duration_minutes > 0:
+                                subtask_actual_time = convert_minutes_to_hhmmss(subtask_total_duration_minutes)
+                        
+                        # Create 00:00 time entry for completed subtasks without time tracking
+                        subtask_has_calculated_time_entries = len(subtask_calculated_time_entries) > 0
+                        if subtask_completed and not subtask_has_calculated_time_entries:
+                            completion_dt = None
+                            if subtask_completed_at:
+                                try:
+                                    if isinstance(subtask_completed_at, str):
+                                        if 'T' in subtask_completed_at:
+                                            completion_dt = datetime.fromisoformat(subtask_completed_at.replace('Z', '+00:00'))
+                                        else:
+                                            completion_dt = datetime.strptime(subtask_completed_at.split()[0], '%Y-%m-%d')
+                                    else:
+                                        completion_dt = subtask_completed_at
+                                except Exception:
+                                    completion_dt = None
+                            
+                            if completion_dt is None:
+                                completion_dt = datetime.now()
+                            
+                            completion_datetime_str = completion_dt.isoformat()
+                            assigned_user = validate_user(subtask_assignee, default_to_tom=False)
+                            user_name = assigned_user if assigned_user else None
+                            
+                            dummy_time_entry = {
+                                'start_datetime': completion_datetime_str,
+                                'end_datetime': completion_datetime_str,
+                                'duration': '00:00:00',
+                                'is_completed': True,
+                                'completed_datetime': completion_datetime_str,
+                                'event_type': 'task',
+                                'time_entry_type': 'task',
+                                'billable_time_type': 'billable',
+                            }
+                            
+                            if user_name:
+                                dummy_time_entry['user_name'] = user_name
+                            
+                            subtask_calculated_time_entries.append(dummy_time_entry)
+                            subtask_has_calculated_time_entries = True
+                        
+                        # Get subtask start date
+                        subtask_start_datetime = subtask.get('start_on') or subtask.get('start_at')
+                        if subtask_start_datetime:
+                            if isinstance(subtask_start_datetime, str):
+                                try:
+                                    if 'T' not in subtask_start_datetime:
+                                        subtask_start_datetime = f"{subtask_start_datetime}T00:00:00"
+                                except Exception:
+                                    subtask_start_datetime = None
+                            else:
+                                subtask_start_datetime = None
+                        else:
+                            subtask_start_datetime = None
+                        
+                        # Get subtask priority
+                        subtask_priority_str = extract_priority(subtask, subtask_title)
+                        subtask_priority_id = None
+                        if subtask_priority_str:
+                            priority_lower = subtask_priority_str.lower()
+                            if 'high' in priority_lower:
+                                subtask_priority_id = 1
+                            elif 'low' in priority_lower:
+                                subtask_priority_id = 3
+                            else:
+                                subtask_priority_id = 2
+                        
+                        # Get subtask stories/comments
+                        subtask_stories = subtask.get('stories', [])
+                        
+                        # Build transformed subtask
+                        transformed_subtask = {
+                            'title': subtask_title,
+                            'is_completed': False,  # Create as not completed initially
+                            'is_personal': False,
+                        }
+                        
+                        # Add optional fields
+                        if subtask_description:
+                            transformed_subtask['description'] = subtask_description
+                        if subtask_start_datetime:
+                            transformed_subtask['start_datetime'] = subtask_start_datetime
+                        if subtask_datetime_due:
+                            transformed_subtask['datetime_due'] = subtask_datetime_due
+                        if subtask_actual_time:
+                            transformed_subtask['duration_actual'] = subtask_actual_time
+                        if subtask_priority_id:
+                            transformed_subtask['priority_id'] = subtask_priority_id
+                        if status:
+                            transformed_subtask['status'] = status
+                        
+                        # Inherit from parent: project_name, project_phase_name, company_name, activity_type
+                        if project_name:
+                            transformed_subtask['project_name'] = project_name
+                        if project_phase:
+                            transformed_subtask['project_phase_name'] = project_phase
+                        if company:
+                            transformed_subtask['company_name'] = company
+                        if activity_type:
+                            transformed_subtask['activity_type'] = activity_type
+                        
+                        # Set owner and assignee
+                        if subtask_owner:
+                            transformed_subtask['owner_name'] = subtask_owner
+                        assigned_user = validate_user(subtask_assignee, default_to_tom=False)
+                        if assigned_user:
+                            transformed_subtask['assigned_to_name'] = [assigned_user]
+                        
+                        # Mark as subtask with parent reference
+                        transformed_subtask['parent_asana_gid'] = task_gid  # Link to parent via Asana GID
+                        transformed_subtask['is_subtask'] = True  # Flag to identify as subtask
+                        
+                        # Store Asana GID
+                        if subtask_gid:
+                            transformed_subtask['asana_gid'] = subtask_gid
+                        
+                        # Store stories and time entries
+                        if subtask_stories:
+                            transformed_subtask['stories'] = subtask_stories
+                        if subtask_calculated_time_entries:
+                            transformed_subtask['calculated_time_entries'] = subtask_calculated_time_entries
+                        
+                        # Store completion info
+                        transformed_subtask['_asana_completed'] = subtask_completed
+                        transformed_subtask['_asana_completed_at'] = subtask_completed_at
+                        transformed_subtask['_has_calculated_time_entries'] = subtask_has_calculated_time_entries
+                        
+                        # Add subtask to tasks list
+                        transformed_data['tasks'].append(transformed_subtask)
+                        tasks_written += 1
+                        
+                        logger.debug(f"      ✓ Subtask transformed: {subtask_name}")
+                        
+                    except Exception as e:
+                        logger.warning(f"      ⚠ Could not transform subtask: {e}")
+                        continue
         
         logger.info("="*60)
         logger.info(f"✓ Transformation completed successfully!")

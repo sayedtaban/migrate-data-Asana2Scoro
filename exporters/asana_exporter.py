@@ -156,7 +156,35 @@ def export_asana_project(asana_client: AsanaClient, project_name: Optional[str] 
                 # Get subtasks if this is a parent task
                 if detailed_task.get('num_subtasks', 0) > 0:
                     subtasks = asana_client.get_subtasks(task_gid)
-                    detailed_task['subtasks'] = subtasks
+                    # Fetch full details for each subtask (stories, time entries, etc.)
+                    detailed_subtasks = []
+                    for subtask in subtasks:
+                        subtask_gid = subtask.get('gid', '')
+                        if subtask_gid:
+                            try:
+                                # Get full subtask details (similar to parent task)
+                                detailed_subtask = asana_client.get_task_details(subtask_gid)
+                                
+                                # Get subtask attachments
+                                subtask_attachments = asana_client.get_task_attachments(subtask_gid)
+                                detailed_subtask['attachments'] = subtask_attachments
+                                
+                                # Get subtask stories/comments
+                                subtask_stories = asana_client.get_task_stories(subtask_gid)
+                                detailed_subtask['stories'] = subtask_stories
+                                
+                                # Get subtask time tracking entries
+                                subtask_time_tracking_entries = asana_client.get_time_tracking_entries(subtask_gid)
+                                detailed_subtask['time_tracking_entries'] = subtask_time_tracking_entries
+                                
+                                detailed_subtasks.append(detailed_subtask)
+                            except Exception as e:
+                                logger.warning(f"      ⚠ Could not retrieve full details for subtask {subtask.get('name', subtask_gid)}: {e}")
+                                # Fall back to basic subtask data
+                                detailed_subtasks.append(subtask)
+                        else:
+                            detailed_subtasks.append(subtask)
+                    detailed_task['subtasks'] = detailed_subtasks
                 
                 # Get attachments
                 attachments = asana_client.get_task_attachments(task_gid)

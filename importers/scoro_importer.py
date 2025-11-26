@@ -649,17 +649,35 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
         
         tasks_to_import = transformed_data.get('tasks', [])
         
-        # Apply test mode limit if specified
-        original_task_count = len(tasks_to_import)
-        if max_tasks is not None and max_tasks > 0 and len(tasks_to_import) > max_tasks:
-            tasks_to_import = tasks_to_import[:max_tasks]
-            logger.info(f"⚠ TEST MODE: Limiting task migration to {max_tasks} tasks (out of {original_task_count} total tasks)")
+        # Separate parent tasks from subtasks
+        parent_tasks = []
+        subtasks = []
+        for task in tasks_to_import:
+            if task.get('is_subtask', False):
+                subtasks.append(task)
+            else:
+                parent_tasks.append(task)
         
-        if tasks_to_import:
-            logger.info(f"Creating {len(tasks_to_import)} tasks in Scoro (batch size: {batch_size})...")
+        logger.info(f"Found {len(parent_tasks)} parent task(s) and {len(subtasks)} subtask(s)")
+        
+        # Apply test mode limit if specified (only to parent tasks for now)
+        original_parent_count = len(parent_tasks)
+        if max_tasks is not None and max_tasks > 0 and len(parent_tasks) > max_tasks:
+            parent_tasks = parent_tasks[:max_tasks]
+            logger.info(f"⚠ TEST MODE: Limiting parent task migration to {max_tasks} tasks (out of {original_parent_count} total parent tasks)")
+            # Also filter subtasks to only include those whose parents are being migrated
+            parent_asana_gids = {task.get('asana_gid') for task in parent_tasks if task.get('asana_gid')}
+            subtasks = [st for st in subtasks if st.get('parent_asana_gid') in parent_asana_gids]
+            logger.info(f"  Filtered subtasks to {len(subtasks)} subtask(s) for migrated parents")
+        
+        # Mapping: asana_gid -> scoro_task_id (for linking subtasks to parents)
+        asana_gid_to_scoro_id = {}
+        
+        if parent_tasks:
+            logger.info(f"Creating {len(parent_tasks)} parent tasks in Scoro (batch size: {batch_size})...")
             
-            # Process tasks in batches
-            task_batches = process_batch(tasks_to_import, batch_size)
+            # Process parent tasks in batches
+            task_batches = process_batch(parent_tasks, batch_size)
             total_batches = len(task_batches)
             
             for batch_idx, task_batch in enumerate(task_batches, 1):
@@ -903,6 +921,12 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                             if scoro_task_id is None:
                                 logger.error(f"    ✗ Could not extract task ID from response. Task may not be properly created.")
                                 logger.debug(f"    Response keys: {list(task.keys()) if isinstance(task, dict) else 'Not a dict'}")
+                        
+                        # Store mapping of asana_gid -> scoro_task_id for subtask linking
+                        task_asana_gid = task_data.get('asana_gid')
+                        if task_asana_gid and scoro_task_id:
+                            asana_gid_to_scoro_id[task_asana_gid] = scoro_task_id
+                            logger.debug(f"    Stored parent task mapping: asana_gid {task_asana_gid} -> scoro_task_id {scoro_task_id}")
                         
                         # Create time entries if task has calculated_time_entries
                         # These are from Asana Time Tracking Entries API
@@ -1245,14 +1269,351 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                         logger.error(f"    ✗ {error_msg}")
                         import_results['errors'].append(error_msg)
                         summary.add_failure(error_msg)
+            
+            # Now create subtasks with parent_id linking to parent tasks
+            if subtasks:
+                logger.info("="*60)
+                logger.info(f"Creating {len(subtasks)} subtask(s) in Scoro...")
+                logger.info("="*60)
+                
+                subtask_batches = process_batch(subtasks, batch_size)
+                total_subtask_batches = len(subtask_batches)
+                
+                for batch_idx, subtask_batch in enumerate(subtask_batches, 1):
+                    logger.info(f"Processing subtask batch {batch_idx}/{total_subtask_batches} ({len(subtask_batch)} subtasks)...")
+                    
+                    for idx, subtask_data in enumerate(subtask_batch, 1):
+                        subtask_name = subtask_data.get('title', subtask_data.get('name', 'Unknown'))
+                        global_idx = (batch_idx - 1) * batch_size + idx
+                        logger.info(f"  [{global_idx}/{len(subtasks)}] Creating subtask: {subtask_name}")
+                        print(f"  [{global_idx}/{len(subtasks)}] Creating subtask: {subtask_name}")
+                        
+                        try:
+                            # Get parent Asana GID and resolve to Scoro task ID
+                            parent_asana_gid = subtask_data.get('parent_asana_gid')
+                            if not parent_asana_gid:
+                                logger.warning(f"    ⚠ Subtask has no parent_asana_gid, skipping: {subtask_name}")
+                                continue
+                            
+                            parent_scoro_id = asana_gid_to_scoro_id.get(parent_asana_gid)
+                            if not parent_scoro_id:
+                                logger.warning(f"    ⚠ Parent task (asana_gid: {parent_asana_gid}) not found in created tasks, skipping subtask: {subtask_name}")
+                                continue
+                            
+                            logger.debug(f"    Linking subtask to parent task (scoro_task_id: {parent_scoro_id})")
+                            
+                            # Extract stories/comments before cleaning subtask_data
+                            subtask_stories = subtask_data.get('stories', [])
+                            
+                            # Link subtask to project (inherited from parent)
+                            if project_id:
+                                subtask_data['project_id'] = project_id
+                                logger.debug(f"    Inherited project_id from parent: {project_id}")
+                            
+                            # Set parent_id (required for subtasks in Scoro)
+                            subtask_data['parent_id'] = parent_scoro_id
+                            
+                            # Resolve name fields to IDs (similar to parent tasks)
+                            # - owner_name -> owner_id
+                            owner_name = subtask_data.get('owner_name')
+                            if owner_name:
+                                try:
+                                    owner = scoro_client.find_user_by_name(owner_name)
+                                    if owner:
+                                        owner_id = owner.get('id')
+                                        if owner_id:
+                                            subtask_data['owner_id'] = owner_id
+                                            logger.debug(f"    Resolved subtask owner '{owner_name}' to owner_id: {owner_id}")
+                                        else:
+                                            logger.warning(f"    Subtask owner '{owner_name}' found but no ID available")
+                                    else:
+                                        logger.warning(f"    Could not find subtask owner '{owner_name}' in Scoro users")
+                                except Exception as e:
+                                    logger.warning(f"    Error resolving subtask owner '{owner_name}': {e}")
+                            
+                            # Ensure owner_id is set
+                            if not subtask_data.get('owner_id'):
+                                subtask_data['owner_id'] = 1
+                                logger.debug(f"    No subtask owner_id available. Setting fallback to 1 (Tom Sanpakit)")
+                            
+                            # - assigned_to_name -> related_users
+                            assigned_to_name = subtask_data.get('assigned_to_name')
+                            if assigned_to_name:
+                                try:
+                                    assigned_names = assigned_to_name if isinstance(assigned_to_name, list) else [assigned_to_name]
+                                    related_user_ids = []
+                                    
+                                    for name in assigned_names:
+                                        if not name or not str(name).strip():
+                                            continue
+                                        user = scoro_client.find_user_by_name(str(name).strip())
+                                        if user:
+                                            user_id = user.get('id')
+                                            if user_id:
+                                                related_user_ids.append(user_id)
+                                                logger.debug(f"    Resolved subtask assignee '{name}' to user_id: {user_id}")
+                                            else:
+                                                logger.warning(f"    Subtask assignee '{name}' found but no ID available")
+                                        else:
+                                            logger.warning(f"    Could not find subtask assignee '{name}' in Scoro users")
+                                    
+                                    if related_user_ids:
+                                        subtask_data['related_users'] = related_user_ids
+                                except Exception as e:
+                                    logger.warning(f"    Error resolving subtask assignees '{assigned_to_name}': {e}")
+                            
+                            # Ensure related_users is set
+                            if not subtask_data.get('related_users'):
+                                subtask_data['related_users'] = [1]
+                                logger.debug(f"    No subtask assignees available. Setting fallback to [1] (Tom Sanpakit)")
+                            
+                            # - project_phase_name -> project_phase_id (inherited from parent, but resolve if needed)
+                            project_phase_name = subtask_data.get('project_phase_name')
+                            if project_phase_name and project_id:
+                                try:
+                                    phase = scoro_client.find_phase_by_name(project_phase_name, project_id=project_id)
+                                    if phase:
+                                        phase_id = phase.get('id') or phase.get('phase_id')
+                                        if phase_id:
+                                            subtask_data['project_phase_id'] = phase_id
+                                            logger.debug(f"    Resolved subtask phase '{project_phase_name}' to phase_id: {phase_id}")
+                                        else:
+                                            logger.warning(f"    Subtask phase '{project_phase_name}' found but no ID available")
+                                    else:
+                                        logger.warning(f"    Could not find subtask phase '{project_phase_name}' in project {project_id}")
+                                except Exception as e:
+                                    logger.warning(f"    Error resolving subtask phase '{project_phase_name}': {e}")
+                            
+                            # - company_name -> company_id (inherited from parent)
+                            company_name = subtask_data.get('company_name')
+                            if company_name:
+                                # Reuse project_company_id if it matches
+                                if project_company_id and company_name == transformed_data.get('company_name'):
+                                    subtask_data['company_id'] = project_company_id
+                                    logger.debug(f"    Reused project company_id for subtask: {project_company_id}")
+                                else:
+                                    try:
+                                        company_lookup = scoro_client.find_company_by_name(company_name)
+                                        if company_lookup:
+                                            company_id = company_lookup.get('id') or company_lookup.get('company_id') or company_lookup.get('client_id') or company_lookup.get('contact_id')
+                                            if company_id:
+                                                subtask_data['company_id'] = company_id
+                                                logger.debug(f"    Resolved subtask company '{company_name}' to company_id: {company_id}")
+                                            else:
+                                                logger.warning(f"    Subtask company '{company_name}' found but no ID available")
+                                        else:
+                                            logger.warning(f"    Could not find subtask company '{company_name}' in Scoro companies")
+                                    except Exception as e:
+                                        logger.warning(f"    Error resolving subtask company '{company_name}': {e}")
+                            
+                            # - activity_type -> activity_id
+                            activity_type_name = subtask_data.get('activity_type')
+                            if activity_type_name:
+                                activity_id = activity_name_to_id.get(activity_type_name.strip())
+                                if not activity_id:
+                                    activity_id = activity_name_to_id.get(activity_type_name.strip().lower())
+                                
+                                if activity_id:
+                                    subtask_data['activity_id'] = activity_id
+                                    logger.debug(f"    Resolved subtask activity type '{activity_type_name}' to activity_id: {activity_id}")
+                                else:
+                                    logger.warning(f"    Could not find subtask activity '{activity_type_name}' in Scoro activities")
+                            
+                            # Apply URL transformation to description if present
+                            if 'description' in subtask_data and subtask_data.get('description'):
+                                description = subtask_data.get('description', '')
+                                if description:
+                                    description = replace_asana_profile_urls_with_scoro_mentions(
+                                        description,
+                                        scoro_client,
+                                        asana_data,
+                                        wrap_in_paragraph=False
+                                    )
+                                    subtask_data['description'] = description
+                            
+                            # Remove metadata fields (same as parent tasks)
+                            subtask_data_clean = {k: v for k, v in subtask_data.items() 
+                                                 if k not in ['asana_gid', 'asana_permalink', 'dependencies', 'num_subtasks', 
+                                                              'attachment_count', 'attachment_refs', 'followers',
+                                                              'owner_name', 'assigned_to_name', 'project_phase_name', 
+                                                              'project_name', 'company_name', 'tags', 'is_milestone', 'stories', 
+                                                              'calculated_time_entries', 'activity_type',
+                                                              '_asana_completed', '_asana_completed_at', '_has_calculated_time_entries',
+                                                              'parent_asana_gid', 'is_subtask']}
+                            
+                            # Map 'title' to 'event_name'
+                            if 'title' in subtask_data_clean and 'event_name' not in subtask_data_clean:
+                                subtask_data_clean['event_name'] = subtask_data_clean.pop('title')
+                            
+                            # Create the subtask
+                            subtask = scoro_client.create_task(subtask_data_clean)
+                            import_results['tasks'].append(subtask)
+                            summary.add_success()
+                            logger.info(f"    ✓ Subtask created: {subtask_name}")
+                            
+                            # Extract subtask ID
+                            scoro_subtask_id = None
+                            for field_name in ['event_id', 'task_id', 'id', 'eventId', 'taskId']:
+                                task_id_value = subtask.get(field_name)
+                                if task_id_value is not None:
+                                    try:
+                                        task_id_int = int(task_id_value)
+                                        if task_id_int > 0:
+                                            scoro_subtask_id = task_id_int
+                                            logger.debug(f"    Extracted subtask ID from field '{field_name}': {scoro_subtask_id}")
+                                            break
+                                    except (ValueError, TypeError):
+                                        continue
+                            
+                            # Create time entries for subtask (same logic as parent tasks)
+                            subtask_calculated_time_entries = subtask_data.get('calculated_time_entries', [])
+                            subtask_asana_completed = subtask_data.get('_asana_completed', False)
+                            subtask_asana_completed_at = subtask_data.get('_asana_completed_at')
+                            subtask_has_calculated_time_entries = subtask_data.get('_has_calculated_time_entries', len(subtask_calculated_time_entries) > 0)
+                            
+                            if subtask_calculated_time_entries and scoro_subtask_id is not None:
+                                try:
+                                    logger.info(f"    Creating {len(subtask_calculated_time_entries)} time entries for subtask...")
+                                    
+                                    for idx, time_entry in enumerate(subtask_calculated_time_entries, 1):
+                                        time_entry_data = {
+                                            'event_id': scoro_subtask_id,
+                                            'event_type': time_entry.get('event_type', 'task'),
+                                            'time_entry_type': time_entry.get('time_entry_type', 'task'),
+                                            'start_datetime': time_entry.get('start_datetime'),
+                                            'end_datetime': time_entry.get('end_datetime'),
+                                            'duration': time_entry.get('duration'),
+                                            'is_completed': time_entry.get('is_completed', False),
+                                            'completed_datetime': time_entry.get('completed_datetime'),
+                                            'billable_time_type': time_entry.get('billable_time_type', 'billable'),
+                                        }
+                                        
+                                        user_name = time_entry.get('user_name')
+                                        user_id = None
+                                        if user_name:
+                                            try:
+                                                user = scoro_client.find_user_by_name(user_name)
+                                                if user:
+                                                    user_id = user.get('id')
+                                                    if user_id:
+                                                        time_entry_data['user_id'] = user_id
+                                            except Exception as e:
+                                                logger.warning(f"      [{idx}/{len(subtask_calculated_time_entries)}] Error resolving time entry user '{user_name}': {e}")
+                                        
+                                        if not user_id:
+                                            owner_id = subtask_data.get('owner_id')
+                                            if owner_id:
+                                                time_entry_data['user_id'] = owner_id
+                                            else:
+                                                time_entry_data['user_id'] = 1
+                                        
+                                        scoro_client.create_time_entry(time_entry_data)
+                                        logger.info(f"    ✓ [{idx}/{len(subtask_calculated_time_entries)}] Subtask time entry created: {time_entry.get('duration')}")
+                                    
+                                except Exception as e:
+                                    logger.error(f"    ⚠ Failed to create time entries for subtask: {e}")
+                            
+                            # Update subtask status (same logic as parent tasks)
+                            try:
+                                subtask_update_data = {}
+                                should_update_status = False
+                                
+                                if subtask_asana_completed and subtask_has_calculated_time_entries:
+                                    subtask_update_data['status'] = 'task_status9'  # Completed
+                                    subtask_update_data['is_completed'] = True
+                                    if subtask_asana_completed_at:
+                                        subtask_update_data['datetime_completed'] = subtask_asana_completed_at
+                                    should_update_status = True
+                                elif subtask_has_calculated_time_entries and not subtask_asana_completed:
+                                    subtask_update_data['status'] = 'task_status3'  # In progress
+                                    should_update_status = True
+                                
+                                if should_update_status and scoro_subtask_id:
+                                    scoro_client.update_task(scoro_subtask_id, subtask_update_data)
+                                    logger.info(f"    ✓ Subtask status updated: {subtask_update_data.get('status', 'unknown')}")
+                            except Exception as e:
+                                logger.warning(f"    ⚠ Failed to update subtask status: {e}")
+                            
+                            # Create comments for subtask (same logic as parent tasks)
+                            if subtask_stories and scoro_subtask_id:
+                                comments_created = 0
+                                comments_failed = 0
+                                
+                                for story in subtask_stories:
+                                    try:
+                                        story_type = story.get('type', '').lower()
+                                        if story_type != 'comment':
+                                            continue
+                                        
+                                        comment_text = story.get('text', '').strip()
+                                        if not comment_text:
+                                            continue
+                                        
+                                        comment_text = re.sub(r'<[^>]+>', '', comment_text).strip()
+                                        if not comment_text:
+                                            continue
+                                        
+                                        comment_text = replace_asana_profile_urls_with_scoro_mentions(
+                                            comment_text,
+                                            scoro_client,
+                                            asana_data
+                                        )
+                                        
+                                        comment_text_check = re.sub(r'<[^>]+>', '', comment_text).strip()
+                                        if not comment_text_check:
+                                            continue
+                                        
+                                        created_by = story.get('created_by', {})
+                                        author_name = None
+                                        if isinstance(created_by, dict):
+                                            author_name = created_by.get('name', '')
+                                        
+                                        user_id = None
+                                        if author_name:
+                                            try:
+                                                user_obj = scoro_client.find_user_by_name(author_name)
+                                                if user_obj:
+                                                    user_id = user_obj.get('id')
+                                            except Exception:
+                                                pass
+                                        
+                                        if user_id and user_id > 0:
+                                            try:
+                                                scoro_client.create_comment(
+                                                    module='tasks',
+                                                    object_id=scoro_subtask_id,
+                                                    comment_text=comment_text,
+                                                    user_id=user_id
+                                                )
+                                                comments_created += 1
+                                            except Exception:
+                                                comments_failed += 1
+                                        else:
+                                            comments_failed += 1
+                                    except Exception:
+                                        comments_failed += 1
+                                
+                                if comments_created > 0:
+                                    logger.info(f"    ✓ Created {comments_created} comments for subtask")
+                                if comments_failed > 0:
+                                    logger.warning(f"    ⚠ Failed to create {comments_failed} comments for subtask")
+                        
+                        except Exception as e:
+                            error_msg = f"Failed to create subtask '{subtask_name}': {e}"
+                            print(f"Failed to create subtask '{subtask_name}': {e}")
+                            logger.error(f"    ✗ {error_msg}")
+                            import_results['errors'].append(error_msg)
+                            summary.add_failure(error_msg)
         
         logger.info("="*60)
         logger.info(f"✓ Import completed!")
         logger.info(f"  Project: {'Created' if import_results['project'] else 'Failed'}")
         logger.info(f"  Milestones created: {len(import_results['milestones'])}")
         logger.info(f"  Phases created (from sections): {len(import_results.get('phases', []))}")
-        logger.info(f"  Tasks created: {len(import_results['tasks'])}")
-        logger.info(f"  Tasks failed: {len([e for e in import_results['errors'] if 'task' in e.lower()])}")
+        logger.info(f"  Parent tasks created: {len(parent_tasks)}")
+        logger.info(f"  Subtasks created: {len(subtasks)}")
+        logger.info(f"  Total tasks created: {len(import_results['tasks'])}")
+        logger.info(f"  Tasks failed: {len([e for e in import_results['errors'] if 'task' in e.lower() or 'subtask' in e.lower()])}")
         logger.info(f"  Total errors: {len(import_results['errors'])}")
         logger.info("="*60)
         return import_results
