@@ -46,9 +46,9 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # Option 1: Use project GIDs (faster, no search needed)
 PROJECT_GIDS = [
     # Add more project GIDs here
-    # "1207816263671761",  # Van Zeeland Nursery & Landscape
+    "1207816263671761",  # Van Zeeland Nursery & Landscape
     # "1209020289079877",  # Exscape (VIP)
-    "1201994636901967",  # BTS (VIP)
+    # "1201994636901967",  # BTS (VIP)
     # "1211389004379875",  # Ethoscapes [VIP]
     # "1209371228065321",  # Heritage Landscapes (VIP)
 ]

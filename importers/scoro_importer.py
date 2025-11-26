@@ -693,7 +693,8 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                         
                         # - project_phase_name -> project_phase_id (Integer)
                         project_phase_name = task_data.get('project_phase_name')
-                        logger.debug(f"Find project phase name: {project_phase_name}")
+                        if project_phase_name:
+                            logger.info(f"    Task phase assignment: Looking for phase '{project_phase_name}' in project {project_id}")
                         if project_phase_name and project_id:
                             try:
                                 phase = scoro_client.find_phase_by_name(project_phase_name, project_id=project_id)
@@ -702,13 +703,34 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                     if phase_id:
                                         task_data['project_phase_id'] = phase_id
                                         phase_title = phase.get('title') or phase.get('name', 'Unknown')
-                                        logger.debug(f"    Resolved phase '{project_phase_name}' to project_phase_id: {phase_id} ({phase_title})")
+                                        logger.info(f"    ✓ Task assigned to phase: '{phase_title}' (ID: {phase_id}) for phase name: '{project_phase_name}'")
                                     else:
                                         logger.warning(f"    Phase '{project_phase_name}' found but no ID available")
                                 else:
-                                    logger.warning(f"    Could not find phase '{project_phase_name}' in project {project_id}")
+                                    # Phase not found - fallback to "Misc" phase
+                                    logger.warning(f"    ⚠ Could not find phase '{project_phase_name}' in project {project_id} - falling back to 'Misc' phase")
+                                    misc_phase = scoro_client.find_phase_by_name('Misc', project_id=project_id)
+                                    if misc_phase:
+                                        misc_phase_id = misc_phase.get('id') or misc_phase.get('phase_id')
+                                        if misc_phase_id:
+                                            task_data['project_phase_id'] = misc_phase_id
+                                            logger.info(f"    ✓ Task assigned to fallback phase: 'Misc' (ID: {misc_phase_id})")
+                                        else:
+                                            logger.warning(f"    'Misc' phase found but no ID available")
+                                    else:
+                                        logger.warning(f"    ⚠ Could not find 'Misc' phase either - task will be created without phase assignment")
                             except Exception as e:
                                 logger.warning(f"    Error resolving phase '{project_phase_name}': {e}")
+                                # Try to fallback to Misc on error as well
+                                try:
+                                    misc_phase = scoro_client.find_phase_by_name('Misc', project_id=project_id)
+                                    if misc_phase:
+                                        misc_phase_id = misc_phase.get('id') or misc_phase.get('phase_id')
+                                        if misc_phase_id:
+                                            task_data['project_phase_id'] = misc_phase_id
+                                            logger.info(f"    ✓ Task assigned to fallback phase: 'Misc' (ID: {misc_phase_id}) after error")
+                                except Exception as e2:
+                                    logger.warning(f"    Error resolving fallback 'Misc' phase: {e2}")
                         elif project_phase_name and not project_id:
                             logger.warning(f"    Cannot resolve phase '{project_phase_name}': Project ID not available")
                         

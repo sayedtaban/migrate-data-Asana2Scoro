@@ -222,12 +222,15 @@ class AsanaClient:
         """
         try:
             # Enhanced field list to get all available task data
+            # Note: For memberships, we need to request nested fields to get section information
             opt_fields = [
                 'gid', 'name', 'notes', 'html_notes', 'due_on', 'due_at', 'start_on', 'start_at',
                 'assignee', 'assignee_status', 'completed', 'completed_at', 'created_at', 'modified_at',
-                'custom_fields', 'parent', 'memberships', 'tags', 'followers', 'dependencies',
-                'dependents', 'num_subtasks', 'num_likes', 'liked', 'resource_subtype',
-                'workspace', 'projects', 'permalink_url'
+                'custom_fields', 'parent', 'memberships', 'memberships.project', 'memberships.project.gid',
+                'memberships.section', 'memberships.section.gid', 'memberships.section.name', 
+                'tags', 'followers', 'dependencies', 'dependents', 'num_subtasks', 'num_likes', 'liked', 
+                'resource_subtype', 'workspace', 'projects', 'permalink_url', 'assignee_section', 
+                'assignee_section.gid', 'assignee_section.name'
             ]
             
             opts = {
@@ -267,13 +270,15 @@ class AsanaClient:
         """
         try:
             # Comprehensive field list for detailed task information
+            # Note: For memberships, we need to request nested fields to get section information
             opt_fields = [
                 'gid', 'name', 'actual_time_minutes', 'notes', 'html_notes', 'due_on', 'due_at', 'start_on', 'start_at',
                 'assignee', 'assignee_status', 'completed', 'completed_at', 'created_at', 'modified_at', 'created_by', 'completed_by',
-                'custom_fields', 'parent', 'memberships', 'tags', 'followers', 'dependencies',
+                'custom_fields', 'parent', 'memberships', 'memberships.project', 'memberships.project.gid', 
+                'memberships.section', 'memberships.section.gid', 'memberships.section.name', 'tags', 'followers', 'dependencies',
                 'dependents', 'num_subtasks', 'num_likes', 'liked', 'resource_subtype',
-                'attachments', 'stories', 'subtasks', 'workspace', 'projects', 'permalink_url'
-                'approval_status','assignee','assignee.name','assignee_section','assignee_section.name', 'completed_by.name'
+                'attachments', 'stories', 'subtasks', 'workspace', 'projects', 'permalink_url',
+                'approval_status', 'assignee_section', 'assignee_section.gid', 'assignee_section.name', 'completed_by.name'
             ]
             
             opts = {

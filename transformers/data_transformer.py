@@ -375,7 +375,7 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
         if sections_to_transform:
             logger.info(f"Transforming {len(sections_to_transform)} sections to phases...")
             print(f"Transforming {len(sections_to_transform)} sections to phases...")
-            for section in sections_to_transform:
+            for idx, section in enumerate(sections_to_transform, 1):
                 section_name = section.get('name', 'Unknown')
                 section_gid = section.get('gid', '')
                 
@@ -398,8 +398,8 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                 # If needed, we could extract it, but it's usually not meaningful for phase dates
                 
                 transformed_data['phases'].append(transformed_phase)
-                logger.debug(f"  - {section_name} (GID: {section_gid})")
-                print(f"  - {section_name} (GID: {section_gid})")
+                logger.info(f"  [{idx}/{len(sections_to_transform)}] Section '{section_name}' (GID: {section_gid}) → Phase '{section_name}'")
+                print(f"  [{idx}/{len(sections_to_transform)}] Section '{section_name}' (GID: {section_gid}) → Phase '{section_name}'")
             logger.info(f"✓ Transformed {len(transformed_data['phases'])} sections to phases")
         
         # Add "Misc" phase as default for tasks without sections
@@ -558,6 +558,15 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             section = None
             section_gid = None
             memberships = task.get('memberships', [])
+            
+            # Debug: Log membership structure to understand the data format
+            if memberships:
+                logger.debug(f"    Task has {len(memberships)} membership(s)")
+                for idx, membership in enumerate(memberships):
+                    logger.debug(f"      Membership {idx+1}: {membership}")
+            else:
+                logger.debug(f"    Task has no memberships field or memberships is empty")
+            
             if memberships:
                 for membership in memberships:
                     if isinstance(membership, dict):
@@ -568,10 +577,31 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                                 if isinstance(section_obj, dict):
                                     section = section_obj.get('name', '')
                                     section_gid = section_obj.get('gid', '')
+                                    logger.debug(f"    Found section from membership: '{section}' (GID: {section_gid})")
                                 elif hasattr(section_obj, 'name'):
                                     section = section_obj.name
                                     section_gid = getattr(section_obj, 'gid', '')
+                                    logger.debug(f"    Found section from membership (object): '{section}' (GID: {section_gid})")
+                                else:
+                                    logger.debug(f"    Section object found but format unexpected: {type(section_obj)} - {section_obj}")
+                            else:
+                                logger.debug(f"    Membership has project but no section: {membership}")
                             break
+                    else:
+                        logger.debug(f"    Membership is not a dict: {type(membership)} - {membership}")
+            
+            # Also try assignee_section as fallback (some Asana API responses use this field)
+            if not section:
+                assignee_section = task.get('assignee_section')
+                if assignee_section:
+                    if isinstance(assignee_section, dict):
+                        section = assignee_section.get('name', '')
+                        section_gid = assignee_section.get('gid', '')
+                        logger.debug(f"    Found section from assignee_section: '{section}' (GID: {section_gid})")
+                    elif hasattr(assignee_section, 'name'):
+                        section = assignee_section.name
+                        section_gid = getattr(assignee_section, 'gid', '')
+                        logger.debug(f"    Found section from assignee_section (object): '{section}' (GID: {section_gid})")
             
             # Map activity type using category mapping
             activity_type = smart_map_activity_and_tracking(title, category, section)
@@ -581,15 +611,23 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             # Map project phase
             # Priority: Use section name directly (since sections become phases with the same name)
             # If no section, assign to "Misc" phase (default phase created for tasks without sections)
+            # Also map "Untitled section" to "Misc" to avoid creating unnecessary phases
             if section:
-                # Use section name directly - this matches the phase name created from the section
-                project_phase = section.strip()
-                logger.debug(f"    Task assigned to section/phase: {project_phase}")
+                section_trimmed = section.strip()
+                # Map "Untitled section" to "Misc" to avoid creating unnecessary phases
+                if section_trimmed.lower() in ['untitled section', 'untitled']:
+                    filled_phase += 1
+                    project_phase = 'Misc'
+                    logger.info(f"    Task from section '{section}' (GID: {section_gid}) → mapped to 'Misc' phase (untitled section)")
+                else:
+                    # Use section name directly - this matches the phase name created from the section
+                    project_phase = section_trimmed
+                    logger.info(f"    Task from section '{section}' (GID: {section_gid}) → assigned to phase: '{project_phase}'")
             else:
                 # Assign to "Misc" phase if no section (don't use smart_map_phase)
                 filled_phase += 1
                 project_phase = 'Misc'
-                logger.debug(f"    Task assigned to 'Misc' phase (no section)")
+                logger.info(f"    Task has no section → assigned to 'Misc' phase")
             
             # Map users
             # Note: Project Manager (PM Name) is already handled at project level via manager_id

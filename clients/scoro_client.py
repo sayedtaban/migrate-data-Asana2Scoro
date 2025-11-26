@@ -1418,6 +1418,10 @@ class ScoroClient:
         Find a project phase by name in Scoro
         Uses cached phases list to avoid repeated API calls.
         
+        Uses strict matching: prefers exact matches (case-sensitive) first,
+        then falls back to case-insensitive matches. This prevents matching
+        the wrong phase when multiple phases have similar names.
+        
         Args:
             phase_name: Name (title) of the phase to find
             project_id: Optional project ID to limit search to a specific project
@@ -1428,7 +1432,7 @@ class ScoroClient:
         try:
             phases = self._get_cached_phases(project_id=project_id)
             if not phases:
-                logger.debug(f"No phases available to search for: {phase_name} in project {project_id if project_id else 'any'}")
+                logger.debug(f"No phases available to search for: '{phase_name}' in project {project_id if project_id else 'any'}")
                 return None
             
             # When project_id is provided, phases are already filtered to that project (from get_project)
@@ -1439,28 +1443,56 @@ class ScoroClient:
                 if not phases:
                     logger.debug(f"No phases found for project ID {project_id} after filtering")
                     return None
-                logger.debug(f"Searching {len(phases)} phases for project ID {project_id}")
+                logger.debug(f"Searching {len(phases)} phases for project ID {project_id} to find phase: '{phase_name}'")
             
-            phase_name_lower = phase_name.lower().strip()
+            phase_name_stripped = phase_name.strip()
+            phase_name_lower = phase_name_stripped.lower()
             
+            # First pass: Try exact match (case-sensitive) - this is the most reliable
             for phase in phases:
                 # Try title field (most common)
                 title = phase.get('title', '')
-                if title and title.lower().strip() == phase_name_lower:
+                if title and title.strip() == phase_name_stripped:
                     phase_id = phase.get('id') or phase.get('phase_id')
                     phase_project_id = phase.get('project_id')
-                    logger.debug(f"Found phase by title: {title} (ID: {phase_id}, Project ID: {phase_project_id})")
+                    logger.info(f"Found phase by exact title match: '{title}' (ID: {phase_id}, Project ID: {phase_project_id}) for search: '{phase_name}'")
                     return phase
                 
                 # Try name field as fallback
                 name = phase.get('name', '')
-                if name and name.lower().strip() == phase_name_lower:
+                if name and name.strip() == phase_name_stripped:
                     phase_id = phase.get('id') or phase.get('phase_id')
                     phase_project_id = phase.get('project_id')
-                    logger.debug(f"Found phase by name: {name} (ID: {phase_id}, Project ID: {phase_project_id})")
+                    logger.info(f"Found phase by exact name match: '{name}' (ID: {phase_id}, Project ID: {phase_project_id}) for search: '{phase_name}'")
                     return phase
             
-            logger.debug(f"Phase '{phase_name}' not found in project {project_id if project_id else 'any'}")
+            # Second pass: Try case-insensitive match (fallback)
+            # Log all potential matches for debugging
+            potential_matches = []
+            for phase in phases:
+                title = phase.get('title', '')
+                name = phase.get('name', '')
+                if title and title.lower().strip() == phase_name_lower:
+                    potential_matches.append(('title', title, phase))
+                elif name and name.lower().strip() == phase_name_lower:
+                    potential_matches.append(('name', name, phase))
+            
+            if potential_matches:
+                # If multiple matches, log warning and use first one
+                if len(potential_matches) > 1:
+                    logger.warning(f"Multiple case-insensitive matches found for phase '{phase_name}' in project {project_id}: {[m[1] for m in potential_matches]}")
+                    logger.warning(f"Using first match: '{potential_matches[0][1]}' (this may be incorrect if phase names are similar)")
+                
+                match_type, match_name, phase = potential_matches[0]
+                phase_id = phase.get('id') or phase.get('phase_id')
+                phase_project_id = phase.get('project_id')
+                logger.info(f"Found phase by case-insensitive {match_type} match: '{match_name}' (ID: {phase_id}, Project ID: {phase_project_id}) for search: '{phase_name}'")
+                return phase
+            
+            # No match found - log available phases for debugging
+            available_phases = [p.get('title') or p.get('name', 'Unknown') for p in phases]
+            logger.warning(f"Phase '{phase_name}' not found in project {project_id if project_id else 'any'}")
+            logger.debug(f"Available phases in project {project_id}: {available_phases}")
             return None
         except Exception as e:
             logger.warning(f"Error finding phase '{phase_name}': {e}")
