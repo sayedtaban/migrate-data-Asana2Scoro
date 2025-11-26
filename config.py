@@ -46,10 +46,10 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # Option 1: Use project GIDs (faster, no search needed)
 PROJECT_GIDS = [
     # Add more project GIDs here
-    # "1207816263671761",  # Van Zeeland Nursery & Landscape
+    "1207816263671761",  # Van Zeeland Nursery & Landscape
     # "1209020289079877",  # Exscape (VIP)
     # "1201994636901967",  # BTS (VIP) 1034
-    "1211389004379875",  # Ethoscapes [VIP]
+    # "1211389004379875",  # Ethoscapes [VIP] - sucess
     # "1209371228065321",  # Heritage Landscapes (VIP)
 ]
 
@@ -74,23 +74,27 @@ CUTOFF_DATE = datetime(2001, 7, 1)  # Naive datetime for comparison
 VALID_SCORO_USERS = {
     'Austin Koziol', 'Bethany Aeckersberg', 'Cait George', 'Tom Sanpakit',
     'Andrea Pejoska', 'Anna Halstead', 'Debbie Hoffman', 'Elizabeth Wasserman',
-    'Kelsey Blomquist-Wright', 'Lauren Cullnan', 'Matej Robar', 'Polina Kroyter',
-    'Taryn Himmelright', 'Tiffney Ma', 'Tracy Hart', 'Christine Holz',
-    'Corey Halstead', 'Dani Cervantes', 'Devon Stank', 'Elizabeth Wood',
+    'Kelsey Blomquist-Wright', 'Lauren Cullnan', 'Matej Robar', 'Polina Kroytor',
+    'Taryn Himmelright', 'Tiffney Ma', 'Tracy Hart',  # <-- Fix here!
+    'Christine Holz', 'Corey Halstead', 'Dani Cervantes', 'Devon Stank', 'Elizabeth Wood',
     'Ellie Troughton', 'Giorgi Goguadze', 'Jim McGrorry', 'Katya Pankov',
     'Lena Lebid', 'Lindsey Cartwright', 'Martina Willis', 'Matteo Banfo',
-    'Mylessia Tkacs', 'Olivia Mello'
+    'Mylessia Tkacs', 'Olivia Mello', 'Sayed Taban', 'Fitore Maxhuni',
+    'Jane Numbers', 'John McDunn', 'Kevin Harris'
 }
 
 USER_MAPPING = {
-    'Matej': 'Matej Robar', 'Ellie': 'Ellie Troughton', 'Tracy': 'Tracy Sanpakit',
-    'Austin': 'Austin Koziol', 'Sophia': 'Sophia Sanpakit', 'Giuseppe': 'Giuseppe Sanpakit',
-    'Marie': 'Marie Sanpakit', 'Rachel': 'Rachel Sanpakit', 'Bethany': 'Bethany Aeckersberg',
+    'Matej': 'Matej Robar', 'Ellie': 'Ellie Troughton', 'Tracy': 'Tracy Hart',
+    'Austin': 'Austin Koziol', 'Bethany': 'Bethany Aeckersberg',
     'Anna': 'Anna Halstead', 'Debbie': 'Debbie Hoffman', 'Lauren': 'Lauren Cullnan',
     'Andrea': 'Andrea Pejoska', 'Dani': 'Dani Cervantes', 'Lena': 'Lena Lebid',
     'Olivia': 'Olivia Mello', 'Giorgi': 'Giorgi Goguadze', 'Martina': 'Martina Willis',
     'Matteo': 'Matteo Banfo', 'Mylessia': 'Mylessia Tkacs', 'Christine': 'Christine Holz',
-    'Kelsey': 'Kelsey Blomquist-Wright', 'Cait': 'Cait George', 'Tom': 'Tom Sanpakit'
+    'Kelsey': 'Kelsey Blomquist-Wright', 'Cait': 'Cait George', 'Tom': 'Tom Sanpakit', 
+    'Polina': 'Polina Kroytor', 'Taryn': 'Taryn Himmelright', 'Tiffney': 'Tiffney Ma', 
+    'Corey': 'Corey Halstead', 'Devon': 'Devon Stank', 'Jim': 'Jim McGrorry', 'Katya': 'Katya Pankov',
+    'Lindsey': 'Lindsey Cartwright', 'Sophia': 'Sophia Sanpakit', 'Giuseppe': 'Giuseppe Sanpakit',
+    'Marie': 'Marie Sanpakit', 'Rachel': 'Rachel Sanpakit'
 }
 
 # Environment variable names

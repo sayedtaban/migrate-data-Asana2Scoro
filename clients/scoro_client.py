@@ -1,6 +1,7 @@
 """
 Scoro API client for interacting with Scoro API
 """
+import html
 import os
 from typing import Dict, List, Optional
 
@@ -1445,26 +1446,34 @@ class ScoroClient:
                     return None
                 logger.debug(f"Searching {len(phases)} phases for project ID {project_id} to find phase: '{phase_name}'")
             
-            phase_name_stripped = phase_name.strip()
+            # Normalize phase name by decoding HTML entities (e.g., &amp; -> &)
+            # Scoro API may return phase names with HTML entities encoded
+            phase_name_stripped = html.unescape(phase_name.strip())
             phase_name_lower = phase_name_stripped.lower()
             
             # First pass: Try exact match (case-sensitive) - this is the most reliable
             for phase in phases:
                 # Try title field (most common)
                 title = phase.get('title', '')
-                if title and title.strip() == phase_name_stripped:
-                    phase_id = phase.get('id') or phase.get('phase_id')
-                    phase_project_id = phase.get('project_id')
-                    logger.info(f"Found phase by exact title match: '{title}' (ID: {phase_id}, Project ID: {phase_project_id}) for search: '{phase_name}'")
-                    return phase
+                if title:
+                    # Decode HTML entities in phase title before comparison
+                    title_normalized = html.unescape(title.strip())
+                    if title_normalized == phase_name_stripped:
+                        phase_id = phase.get('id') or phase.get('phase_id')
+                        phase_project_id = phase.get('project_id')
+                        logger.info(f"Found phase by exact title match: '{title}' (ID: {phase_id}, Project ID: {phase_project_id}) for search: '{phase_name}'")
+                        return phase
                 
                 # Try name field as fallback
                 name = phase.get('name', '')
-                if name and name.strip() == phase_name_stripped:
-                    phase_id = phase.get('id') or phase.get('phase_id')
-                    phase_project_id = phase.get('project_id')
-                    logger.info(f"Found phase by exact name match: '{name}' (ID: {phase_id}, Project ID: {phase_project_id}) for search: '{phase_name}'")
-                    return phase
+                if name:
+                    # Decode HTML entities in phase name before comparison
+                    name_normalized = html.unescape(name.strip())
+                    if name_normalized == phase_name_stripped:
+                        phase_id = phase.get('id') or phase.get('phase_id')
+                        phase_project_id = phase.get('project_id')
+                        logger.info(f"Found phase by exact name match: '{name}' (ID: {phase_id}, Project ID: {phase_project_id}) for search: '{phase_name}'")
+                        return phase
             
             # Second pass: Try case-insensitive match (fallback)
             # Log all potential matches for debugging
@@ -1472,10 +1481,16 @@ class ScoroClient:
             for phase in phases:
                 title = phase.get('title', '')
                 name = phase.get('name', '')
-                if title and title.lower().strip() == phase_name_lower:
-                    potential_matches.append(('title', title, phase))
-                elif name and name.lower().strip() == phase_name_lower:
-                    potential_matches.append(('name', name, phase))
+                if title:
+                    # Decode HTML entities in phase title before comparison
+                    title_normalized = html.unescape(title.strip())
+                    if title_normalized.lower() == phase_name_lower:
+                        potential_matches.append(('title', title, phase))
+                elif name:
+                    # Decode HTML entities in phase name before comparison
+                    name_normalized = html.unescape(name.strip())
+                    if name_normalized.lower() == phase_name_lower:
+                        potential_matches.append(('name', name, phase))
             
             if potential_matches:
                 # If multiple matches, log warning and use first one
@@ -1490,7 +1505,8 @@ class ScoroClient:
                 return phase
             
             # No match found - log available phases for debugging
-            available_phases = [p.get('title') or p.get('name', 'Unknown') for p in phases]
+            # Decode HTML entities in phase names for clearer logging
+            available_phases = [html.unescape(p.get('title') or p.get('name', 'Unknown')) for p in phases]
             logger.warning(f"Phase '{phase_name}' not found in project {project_id if project_id else 'any'}")
             logger.debug(f"Available phases in project {project_id}: {available_phases}")
             return None
