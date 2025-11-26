@@ -47,9 +47,9 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 PROJECT_GIDS = [
     # Add more project GIDs here
     # "1207816263671761",  # Van Zeeland Nursery & Landscape - done1
-    # "1209020289079877",  # Exscape (VIP) progress
+    "1209020289079877",  # Exscape (VIP) progress
     # "1201994636901967",  # BTS (VIP) 1034
-    "1211389004379875",  # Ethoscapes [VIP] - done1
+    # "1211389004379875",  # Ethoscapes [VIP] - done1
     # "1209371228065321",  # Heritage Landscapes (VIP)
 ]
 

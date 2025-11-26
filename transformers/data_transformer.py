@@ -86,110 +86,68 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
                     logger.info(f"  Found company name from task custom field: {company_name}")
                     break
         
-        # Extract Project Manager/Owner from Asana project
-        # Priority: ALWAYS use Asana Project Owner as Scoro Project Manager
-        # Asana Project Owner → Scoro Project Manager (manager_id)
+        # Extract Project Manager from "PM Name" custom field in tasks
+        # Priority: Find custom field with name "PM Name" and use its display_value (first name)
+        # The display_value contains the first name of the user who should be the Scoro Project Manager
+        # Search through all tasks until we find a non-null display_value
         pm_name = None
-        users_map = asana_data.get('users', {})
+        tasks = asana_data.get('tasks', [])
+        null_count = 0  # Track how many null display_values we encounter
         
-        # Get project owner from project.owner field - this is the authoritative source
-        project_owner = project.get('owner')
-        owner_gid = None
-        owner_name_from_owner_field = None
-        
-        if project_owner:
-            if isinstance(project_owner, dict):
-                owner_gid = project_owner.get('gid')
-                owner_name_from_owner_field = project_owner.get('name')  # Try to get name directly
-            elif hasattr(project_owner, 'gid'):
-                owner_gid = project_owner.gid
-                owner_name_from_owner_field = getattr(project_owner, 'name', None)
+        # Search through all tasks to find a custom field with name "PM Name"
+        # Continue searching until we find a non-null display_value
+        for task in tasks:
+            custom_fields = task.get('custom_fields', [])
+            if not custom_fields:
+                continue
             
-            # Try method 1: Get name directly from owner field
-            if owner_name_from_owner_field:
-                pm_name = owner_name_from_owner_field
-                logger.info(f"  Found project owner name from project.owner field: {pm_name} (GID: {owner_gid})")
-            # Try method 2: Look up in users map
-            elif owner_gid and owner_gid in users_map:
-                owner_details = users_map[owner_gid]
-                pm_name = owner_details.get('name', '')
-                if pm_name:
-                    logger.info(f"  Found project owner from users map: {pm_name} (GID: {owner_gid})")
-            # Try method 3: Search tasks for owner name
-            elif owner_gid:
-                logger.info(f"  Project owner GID {owner_gid} not in users map, searching all tasks...")
-                tasks = asana_data.get('tasks', [])
-                
-                # Search all tasks to find this user's name
-                for task in tasks:  
-                    if pm_name:  # Already found, can break
+            for field in custom_fields:
+                if isinstance(field, dict):
+                    field_name = field.get('name', '')
+                    # Check if this is the "PM Name" field
+                    if field_name and field_name.lower() == 'pm name':
+                        # Get display_value (contains the first name)
+                        display_value = field.get('display_value')
+                        
+                        # Check if display_value is null or empty
+                        if display_value is None or (isinstance(display_value, str) and not display_value.strip()):
+                            null_count += 1
+                            logger.debug(f"  Found 'PM Name' field but display_value is null/empty (skipping, {null_count} null values encountered so far)")
+                            continue
+                        
+                        # display_value is not null - use it as project manager's first name
+                        pm_name = str(display_value).strip()
+                        logger.info(f"  Found PM Name from custom field: {pm_name} (skipped {null_count} null values)")
                         break
+                elif hasattr(field, 'name') and field.name and field.name.lower() == 'pm name':
+                    # Handle object with attributes
+                    display_value = getattr(field, 'display_value', None)
                     
-                    # Check assignee
-                    assignee = task.get('assignee')
-                    if assignee:
-                        assignee_gid = None
-                        assignee_name = None
-                        if isinstance(assignee, dict):
-                            assignee_gid = assignee.get('gid')
-                            assignee_name = assignee.get('name')
-                        elif hasattr(assignee, 'gid'):
-                            assignee_gid = assignee.gid
-                            assignee_name = getattr(assignee, 'name', None)
-                        
-                        if assignee_gid == owner_gid and assignee_name:
-                            pm_name = assignee_name
-                            logger.info(f"  ✓ Found project owner from task assignee: {pm_name} (GID: {owner_gid})")
-                            break
+                    # Check if display_value is null or empty
+                    if display_value is None or (isinstance(display_value, str) and not display_value.strip()):
+                        null_count += 1
+                        logger.debug(f"  Found 'PM Name' field but display_value is null/empty (skipping, {null_count} null values encountered so far)")
+                        continue
                     
-                    # Check created_by
-                    created_by = task.get('created_by')
-                    if created_by:
-                        created_by_gid = None
-                        created_by_name = None
-                        if isinstance(created_by, dict):
-                            created_by_gid = created_by.get('gid')
-                            created_by_name = created_by.get('name')
-                        elif hasattr(created_by, 'gid'):
-                            created_by_gid = created_by.gid
-                            created_by_name = getattr(created_by, 'name', None)
-                        
-                        if created_by_gid == owner_gid and created_by_name:
-                            pm_name = created_by_name
-                            logger.info(f"  ✓ Found project owner from task created_by: {pm_name} (GID: {owner_gid})")
-                            break
-                    
-                    # Check followers/collaborators in stories
-                    for story in task.get('stories', []):
-                        if pm_name:
-                            break
-                        story_created_by = story.get('created_by')
-                        if story_created_by:
-                            story_gid = None
-                            story_name = None
-                            if isinstance(story_created_by, dict):
-                                story_gid = story_created_by.get('gid')
-                                story_name = story_created_by.get('name')
-                            elif hasattr(story_created_by, 'gid'):
-                                story_gid = story_created_by.gid
-                                story_name = getattr(story_created_by, 'name', None)
-                            
-                            if story_gid == owner_gid and story_name:
-                                pm_name = story_name
-                                logger.info(f"  ✓ Found project owner from story author: {pm_name} (GID: {owner_gid})")
-                                break
-                
-                if not pm_name:
-                    logger.warning(f"  ⚠ Could not find name for project owner GID {owner_gid}")
-                    logger.warning(f"  ⚠ Project will be created without a manager assigned")
-        else:
-            logger.warning(f"  ⚠ No project owner found in Asana project data")
+                    # display_value is not null - use it as project manager's first name
+                    pm_name = str(display_value).strip()
+                    if pm_name:
+                        logger.info(f"  Found PM Name from custom field: {pm_name} (skipped {null_count} null values)")
+                        break
+            
+            # If we found a PM name, we can stop searching
+            if pm_name:
+                break
+        
+        if not pm_name:
+            logger.warning(f"  ⚠ No 'PM Name' custom field found with non-null display_value in any task")
             logger.warning(f"  ⚠ Project will be created without a manager assigned")
         
         # Extract project members for reference
         # Asana project members → Scoro project team members
         project_members = []
         members_list = project.get('members', [])
+        users_map = asana_data.get('users', {})  # Initialize users_map for member lookup
         if members_list:
             tasks = asana_data.get('tasks', [])
             

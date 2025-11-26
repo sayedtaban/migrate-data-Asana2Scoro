@@ -1245,6 +1245,17 @@ class ScoroClient:
                     self._user_lookup_cache[user_name_lower] = user
                     return user
                 
+                # Try firstname-only match (important for PM Name which contains first names)
+                # Only try this if the input name appears to be a single word (first name only)
+                if ' ' not in user_name_lower:
+                    firstname = user.get('firstname', '')
+                    if firstname and firstname.lower().strip() == user_name_lower:
+                        user_id = user.get('id')
+                        logger.debug(f"Found user by firstname: {firstname} (ID: {user_id})")
+                        # Cache the result
+                        self._user_lookup_cache[user_name_lower] = user
+                        return user
+                
                 # Try partial match on full_name (in case of slight variations)
                 if full_name:
                     # Check if the provided name is contained in full_name or vice versa

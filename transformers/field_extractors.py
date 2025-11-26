@@ -39,7 +39,13 @@ def extract_custom_field_value(task: Dict, field_name: str) -> Optional[str]:
         if isinstance(field, dict):
             field_name_lower = field.get('name', '').lower()
             if field_name.lower() in field_name_lower:
-                # Handle different field types
+                # Priority 1: Check display_value first (for enum fields, this is the displayed name)
+                if 'display_value' in field and field.get('display_value'):
+                    display_val = field.get('display_value')
+                    if display_val and str(display_val).strip():
+                        return str(display_val).strip()
+                
+                # Priority 2: Handle different field types
                 if 'text_value' in field:
                     value = field.get('text_value')
                     return str(value).strip() if value is not None and str(value).strip() else None
@@ -64,7 +70,9 @@ def extract_custom_field_value(task: Dict, field_name: str) -> Optional[str]:
                         return str(date_val) if date_val else None
         elif hasattr(field, 'name') and field_name.lower() in field.name.lower():
             # Handle object with attributes
-            if hasattr(field, 'text_value'):
+            if hasattr(field, 'display_value') and field.display_value:
+                return str(field.display_value).strip() if str(field.display_value).strip() else None
+            elif hasattr(field, 'text_value'):
                 return field.text_value
             elif hasattr(field, 'enum_value') and field.enum_value:
                 return field.enum_value.name if hasattr(field.enum_value, 'name') else str(field.enum_value)
