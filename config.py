@@ -149,12 +149,6 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1200670785956334", # [H] Department MPP
 # ]
 
-# PROJECT_GIDS = [
-
-# ]
-
-
-
 PROJECT_GIDS = [
   "1209226309317546", # Alt's Operation
   "1201997748599444", # Red Rock (VIP)
@@ -165,7 +159,6 @@ PROJECT_GIDS = [
   "1209670241247456", # Polina
   "1207401689716524", # Lena
   "1207599856837084", # Issue Tracker
-
 ]
 
 # PROJECT_GIDS = [
@@ -177,6 +170,176 @@ PROJECT_GIDS = [
 #   "1206355124124877", # Flora Landscape Contractors
 #   "1209852258792933", # Giorgi
 # ]
+
+# PROJECT_GIDS = [
+#   "1202001504658033", # 🚨Town & Country🚨 (VIP)
+#   "1202067237365290", # Platinum (VIP)
+#   "1201944915672225", # Troy Clogg
+#   "1210226294651081", # Christine
+#   "1201759996136469", # Premier Landscaping Inc.
+#   "1209020250329976", # Foremost Fence
+#   "1206695579421996", # Reimbursements
+# ]
+
+
+# PROJECT_GIDS = [
+#   "1207931717530335", # Dani
+#   "1206082775373071", # Apple LandScape Design (VIP)
+#   "1208183190857136", # Jim's Training
+#   "1201955186274436", # Albert Pools (VIP)
+#   "1206393501402418", # Creative Hardscapes
+#   "1202103809714710", # Rutland Nurseries (VIP)
+#   "1204250043888413", # Valley Stone Supply - Unilock Dealer
+#   "836807829489875", # Magic Landscaping (VIP)
+# ]
+
+
+# PROJECT_GIDS = [
+#   "1202103717323633", # Sammarco (VIP)
+#   "1202008494907041", # Fein
+#   "1201994653016894", # Country Lawn Care
+#   "1203644940821003", # 🚨Commonwealth Curb Appeal🚨 (VIP)
+#   "1202664499015949", # Riverside Services
+#   "1209205137475783", # Starbucks Landscaping
+#   "1202067262153755", # Nature's Accents
+# ]
+
+# PROJECT_GIDS = [
+#   "1201997724904303", # CMHA
+#   "1210835404446332", # Brandywine Designs (VIP)
+#   "1210889535977773", # Rising Tide Landscapes (VIP)
+#   "1206394483540315", # Roche Landscaping Services
+#   "1206363754570915", # Project Managers
+#   "1205353734392634", # Pine Ridge Landscaping (VIP)
+#   "1202598063397774", # Legacy Landscape (VIP)
+# ]
+
+# PROJECT_GIDS = [
+#   "1203185755588476", # Indresano Corp (VIP)
+#   "1210873210287559", # Exscape Group
+#   "1202971583662880", # Hardscape Contractors (VIP+)
+#   "1208600372368707", # Integrity
+#   "1202473135917638", # GoldGlo (VIP)
+#   "1211117741325774", # Perfect Pavers of SFL (VIP)
+#   "1202067263383878", # Premier Gunite Pools (VIP)
+# ]
+
+# PROJECT_GIDS = [
+#   "1211184926575840", # KELSEY
+#   "1210124803938200", # Integrations
+#   "1201995259444316", # E.P. Jansen
+#   "1209391945032267", # HomeTurf Landscapes (VIP)
+#   "1211413968568193", # Delon's Onboarding and Training
+#   "1201994636901967", # BTS (VIP)
+#   "1206355619759195", # Weavers Landscape Company
+# ]
+
+# PROJECT_GIDS = [
+#   "1211002007747820", # WTX Outdoor Living (VIP)
+#   "1204320149396735", # Allied Landscape Supply
+#   "1201976495070655", # Unilock
+#   "1201959561838083", # Gary Duff (VIP)
+#   "1204909348975911", # Grandscapes
+#   "1210129565236122", # Artistic Landscaping. Inc.
+#   "1211028564983415", # North East Landscaping Services
+#   "1208574178647908", # BayTerra
+#   "1206396054073411", # Wenzel
+# ]
+
+# PROJECT_GIDS = [
+#   "1202029877560391", # Landscape Architecture
+#   "1210478192678626", # Paramount Outdoor Living
+#   "1209391947899381", # MAB Landscaping
+#   "1207129822443940", # 🚨J&J Landscape Management(VIP+)🚨
+#   "1207285748194854", # Daybreaker Landscapes
+#   "1202103810014649", # Santucci
+#   "1202067261353489", # Northern Lights
+#   "705893338237500", # DNU Halstead Sales & Marketing
+#   "1209582867880756", # 🚨Riverview Landscapes🚨 (VIP)
+# ]
+
+# PROJECT_GIDS = [
+#   "1205797057778863", # King GREEN
+#   "1210467184621570", # Websites In Progress
+#   "1159410326686249", # Client Onboarding
+#   "1207721928698549", # Task Clarity Training
+#   "1203894445821642", # Cedar Hills Landscaping
+#   "1211118383980197", # test
+#   "1211801318555534", # Duplicate of 2025 Client Template
+#   "1209324707997813", # 2025 Client Template
+# ]
+# PROJECT_GIDS = [
+#   "1201997748599110", # PurGreen
+#   "1211796317554229", # Tom Test Project for Kelsey
+#   "1207371717043739", # Hively (VIP)
+#   "1206595171320647", # Roche
+#   "1211792420870735", # PM Time Tracking by Client
+#   "1208873745193724", # Hi-Way Concrete
+#   "715809873266920", # Misc for clients
+#   "1211495866167897", # Tom's Test Project
+#   "1210039749266336", # Yardcreations
+# ]
+
+# PROJECT_GIDS = [
+#   "1204154752021419", # Training
+#   "1211637268379824", # Project Management Tool | Reporting Transition
+#   "1208236324570171", # Billing Videoshoots
+#   "1211489330798377", # Duplicate of 2025 Client Template
+#   "1199187158790731", # MyFence2Go - SEO
+#   "888334325526069", # LandArt/FireSky- Website
+#   "1209773444928037", # Vermont Stone (VS&H Construction) ['25]
+#   "1200858667852392", # [H] Client MPP
+#   "1202103718886449", # Zacarias
+# ]
+
+
+# PROJECT_GIDS = [
+#   "1202029935776209", # Local Life
+#   "1180237628314967", # Platinum
+#   "1204427552401501", # Elizabeth 2023: Interview Asana Project
+#   "1201236676138365", # Content Management
+#   "1206707027635152", # DeBartolo
+#   "1209589888865220", # Ryan Lawn & Tree
+#   "1204356110351656", # M.A.B. Landscape Group
+#   "1210941400014664", # TH test project July 2025
+#   "1206838003174635", # PureModern
+# ]
+
+# PROJECT_GIDS = [
+#   "1209020347269547", # Lawn & Order
+#   "1209373005483148", # Vision Design Landscaping
+#   "1201994699804530", # Antonucci
+#   "1206594099564496", # Kamin
+#   "1201994599417224", # ARJ
+#   "1204189444291008", # BUILT.
+#   "1206124874487664", # Top Rock Design
+#   "1205326220124712", # Kennedy Blue Mountain Stone
+#   "1206494161312836", # OKRs
+# ]
+
+# PROJECT_GIDS = [
+#   "1203848708520233", # Birch Hill Landscaping
+#   "1203848537002834", # C&S Landscaping
+#   "1208771061627949", # George's Paid Trial
+#   "1200856739086838", # Landworx MPP
+#   "1207931717530263", # Alejandra
+#   "1207743544295787", # Ginny
+#   "1202598063397832", # Evolve
+# ]
+
+# PROJECT_GIDS = [
+#   "1203871858478068", # ProScape Lawn & Landscape
+#   "1202067222508732", # Maplehurst
+#   "1203281061714632", # Valley Deck & Patio
+#   "1202017683965876", # JFD
+#   "1201994574141537", # Proscapes
+#   "1202103765718385", # Rine
+#   "1153054154859564", # TKC
+#   "1206396054073415", # TKC
+# ]
+
+
+
 
 Backup_Scoro_Project_ID = [
   "150"
