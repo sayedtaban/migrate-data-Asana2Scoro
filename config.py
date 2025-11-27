@@ -103,13 +103,7 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # "1207469001658854", # Duke's
 # ]
 
-# PROJECT_GIDS = [
-# "1208143258940139", # Blue Ribbon Outdoor (VIP)
-# "1201668388055244", # Halstead Media Clients
-# "377184657233986", # Halstead Content
-# "1207668601734586", # Blogs
-# "1210990004350835", # All Clients
-# ]
+
 
 # PROJECT_GIDS = [
 #   "1209976010654781", # The Stone Man (VIP+)
@@ -137,10 +131,6 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1202008550450876", # GLC (VIP)
 # ]
 
-
-
-
-
 # PROJECT_GIDS = [
 #   "1201721156974866", # Second Nature (VIP)
 #   "1202115152957168", # Niedergeses Landscape [VIP]
@@ -150,16 +140,24 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # ]
 
 PROJECT_GIDS = [
-  "1209226309317546", # Alt's Operation
-  "1201997748599444", # Red Rock (VIP)
-  "1201944213595853", # 1st Impressions
-  "1204845884279023", # Hiner Outdoor Living (VIP)
-  "1210130088736420", # Southern Classic Landscape Management Inc
-  "1201805737718436", # Teddy's (VIP)
-  "1209670241247456", # Polina
-  "1207401689716524", # Lena
-  "1207599856837084", # Issue Tracker
+"1201668388055244", # Halstead Media Clients
 ]
+
+
+# PROJECT_GIDS = [
+#   "377184657233986", # Halstead Content
+#   "1207668601734586", # Blogs
+#   "1210990004350835", # All Clients
+#   "1209226309317546", # Alt's Operation
+#   "1201997748599444", # Red Rock (VIP)
+#   "1201944213595853", # 1st Impressions
+#   "1204845884279023", # Hiner Outdoor Living (VIP)
+#   "1210130088736420", # Southern Classic Landscape Management Inc
+#   "1201805737718436", # Teddy's (VIP)
+#   "1209670241247456", # Polina
+#   "1207401689716524", # Lena
+#   "1207599856837084", # Issue Tracker
+# ]
 
 # PROJECT_GIDS = [
 #   "706549318301154", # Joe and Tony
