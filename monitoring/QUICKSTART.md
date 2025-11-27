@@ -6,15 +6,21 @@
 pip install flask flask-cors
 ```
 
+Or install all requirements:
+```bash
+pip install -r ../requirements.txt
+```
+
 ## 2. Start the Monitoring Server
 
 ```bash
-python monitoring/monitor.py
+cd monitoring
+python monitor.py
 ```
 
 Or use the startup script:
 ```bash
-./monitoring/start_monitor.sh
+./start_monitor.sh
 ```
 
 ## 3. Open the Dashboard
@@ -24,41 +30,27 @@ Open your browser and go to:
 http://localhost:8002
 ```
 
-## 4. Run Migrations
+## 4. Run Your Migration
 
-The migration script (`main.py`) will automatically send status updates to the monitoring server. Just run your migrations as usual:
-
+In another terminal, run your migration script:
 ```bash
 python main.py 1209020289079877
 ```
 
-## 5. Monitor Progress
+The dashboard will automatically update as each phase completes!
 
-Watch the dashboard update in real-time as migrations progress through:
-- 🔴 **Phase 1** (Export from Asana)
-- 🟡 **Phase 2** (Transform Data)
-- 🟢 **Phase 3** (Import to Scoro)
+## Features
 
-## CSV Logs
+- ✅ Real-time status updates
+- ✅ Color-coded phases (Red/Yellow/Green)
+- ✅ CSV logging
+- ✅ Statistics dashboard
+- ✅ Auto-refresh every 5 seconds
 
-All status updates are automatically saved to:
-```
-monitoring/migration_status.csv
-```
+## Testing
 
-## Test the System
-
-Test the monitoring server with sample requests:
-
+Test the server with:
 ```bash
-python test_monitoring_server.py
-```
-
-Or manually:
-
-```bash
-curl -X POST http://localhost:8002 \
-  -H "Content-Type: application/json" \
-  -d '{"asana GID": "1209020289079877", "status": "Phase1", "asana project name": "Test Project"}'
+python ../test_monitoring_server.py
 ```
 

@@ -26,7 +26,7 @@ def send_status_update(project_gid, status, project_name=None):
         project_name: Asana project name (optional)
     """
     try:
-        url = "http://localhost:8002"
+        url = "http://localhost:8002/api/status"
         payload = {
             "asana GID": str(project_gid),
             "status": status
@@ -88,7 +88,6 @@ def migrate_single_project(asana_client, scoro_client, project_gid=None, project
         # Display project details and get GID/name for status updates
         actual_project_gid = project_gid
         actual_project_name = project_name
-        proj = None
         if asana_data.get('project'):
             proj = asana_data['project']
             # Use GID from exported data if we didn't have it initially (migrating by name)
@@ -105,6 +104,7 @@ def migrate_single_project(asana_client, scoro_client, project_gid=None, project
         # Send Phase 1 status update if we now have the GID (migrating by name case)
         if actual_project_gid and not project_gid:
             send_status_update(actual_project_gid, "Phase1", project_name=actual_project_name)
+            print(f"Phase 1 status update sent: {actual_project_gid} - {actual_project_name}")
         
         # Transform data
         logger.info(f"\n{'='*60}")
@@ -114,6 +114,7 @@ def migrate_single_project(asana_client, scoro_client, project_gid=None, project
         # Send status update for Phase 2
         if actual_project_gid:
             send_status_update(actual_project_gid, "Phase2", project_name=actual_project_name)
+            print(f"Phase 2 status update sent: {actual_project_gid} - {actual_project_name}")
         
         logger.info("\nTransforming data...")
         transformed_data = transform_data(asana_data, summary)
@@ -144,18 +145,21 @@ def migrate_single_project(asana_client, scoro_client, project_gid=None, project
         
         # Save export data to file for inspection
         logger.info("Saving exported data to file...")
-        project_name_for_file = actual_project_name if actual_project_name else project_identifier
-        project_name_safe = project_name_for_file.replace(' ', '_').replace('/', '_')
+        project_name_safe = proj.get('name', project_identifier).replace(' ', '_').replace('/', '_')
         output_file = f"asana_export_{project_name_safe}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(asana_data, f, indent=2, default=str)
         logger.info(f"✓ Exported data saved to: {output_file}")
         
+        # Send completion status update
+        if actual_project_gid:
+            send_status_update(actual_project_gid, "Complete", project_name=actual_project_name)
+        
         return {
             'success': True,
             'summary': summary,
-            'project': actual_project_name if actual_project_name else project_identifier,
-            'project_gid': actual_project_gid if actual_project_gid else project_gid
+            'project': proj.get('name', project_identifier),
+            'project_gid': proj.get('gid', project_gid)
         }
         
     except Exception as e:

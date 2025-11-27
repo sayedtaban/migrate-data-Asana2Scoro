@@ -4,27 +4,21 @@ A real-time web dashboard for monitoring Asana to Scoro migration progress.
 
 ## Features
 
-- 📊 **Real-time Dashboard**: Web-based UI that auto-refreshes every 2 seconds
+- 📊 **Real-time Dashboard**: Web-based UI showing all project migrations
 - 📝 **CSV Logging**: Automatically saves all status updates to `migration_status.csv`
-- 🎨 **Color-coded Status**: 
-  - 🔴 Red for Phase 1 (Export)
-  - 🟡 Yellow for Phase 2 (Transform)
-  - 🟢 Green for Phase 3 (Import)
-- 📈 **Statistics**: Shows total projects and counts per phase
-- 🔄 **Auto-refresh**: Dashboard updates automatically without page reload
+- 🎨 **Color-coded Status**: Visual indicators for each phase
+  - 🔴 **Phase1** (Red): Export from Asana
+  - 🟡 **Phase2** (Yellow): Transform Data
+  - 🟢 **Phase3** (Green): Import to Scoro
+- 📈 **Statistics**: Live counts of projects in each phase
+- 🔄 **Auto-refresh**: Dashboard updates every 5 seconds
 
 ## Installation
 
-Install required dependencies:
+Make sure you have the required dependencies:
 
 ```bash
 pip install flask flask-cors
-```
-
-Or add to your `requirements.txt`:
-```
-flask
-flask-cors
 ```
 
 ## Usage
@@ -32,134 +26,132 @@ flask-cors
 ### Start the Monitoring Server
 
 ```bash
-python monitoring/monitor.py
+cd monitoring
+python monitor.py
 ```
 
 The server will start on `http://localhost:8002`
 
 ### Access the Dashboard
 
-Open your web browser and navigate to:
+Open your browser and navigate to:
 ```
 http://localhost:8002
 ```
 
-### API Endpoints
+### API Endpoint
 
-1. **POST /** - Receive status updates
-   ```bash
-   curl -X POST http://localhost:8002 \
-     -H "Content-Type: application/json" \
-     -d '{
-       "asana GID": "1209020289079877",
-       "status": "Phase1",
-       "asana project name": "My Project Name"
-     }'
-   ```
-
-2. **GET /api/status** - Get current status of all projects
-   ```bash
-   curl http://localhost:8002/api/status
-   ```
-
-3. **GET /api/export** - Export current status as CSV
-   ```bash
-   curl http://localhost:8002/api/export -o export.csv
-   ```
-
-## CSV File
-
-All status updates are automatically saved to:
+The migration scripts send POST requests to:
 ```
-monitoring/migration_status.csv
-```
+POST http://localhost:8002/api/status
+Content-Type: application/json
 
-The CSV file contains:
-- Timestamp
-- Asana GID
-- Project Name
-- Status
+{
+  "asana GID": "1209020289079877",
+  "status": "Phase1",
+  "asana project name": "My Project Name"
+}
+```
 
 ## Dashboard Features
 
-- **Statistics Cards**: Shows total projects and counts for each phase
-- **Projects Table**: Displays all projects with:
+- **Total Projects**: Shows the number of projects being tracked
+- **Phase Counts**: Displays how many projects are in each phase
+- **Project Table**: Lists all projects with:
   - Asana GID
   - Project Name
   - Current Status (color-coded)
-  - Last Update Time
-- **Auto-refresh**: Updates every 2 seconds automatically
-- **Responsive Design**: Works on desktop and mobile devices
+  - Last Update Timestamp
+- **Auto-refresh**: Automatically updates every 5 seconds (can be toggled)
+- **Manual Refresh**: Click the refresh button to update immediately
 
-## Integration
+## CSV File
 
-The monitoring system is automatically integrated with the migration script (`main.py`). When you run:
+All status updates are automatically saved to `migration_status.csv` with the following format:
 
-```bash
-python main.py 1209020289079877
+```csv
+Timestamp,Asana GID,Project Name,Status
+2025-11-27 10:30:15,1209020289079877,My Project Name,Phase1
+2025-11-27 10:30:20,1209020289079877,My Project Name,Phase2
+2025-11-27 10:30:25,1209020289079877,My Project Name,Phase3
 ```
 
-The migration script will send status updates to the monitoring server at each phase.
+## API Endpoints
+
+### POST `/api/status`
+Receive status updates from migration scripts.
+
+**Request:**
+```json
+{
+  "asana GID": "1209020289079877",
+  "status": "Phase1",
+  "asana project name": "My Project Name"
+}
+```
+
+**Response:**
+```json
+{
+  "received": true,
+  "gid": "1209020289079877",
+  "status": "Phase1",
+  "project_name": "My Project Name"
+}
+```
+
+### GET `/api/projects`
+Get all current project statuses.
+
+**Response:**
+```json
+{
+  "projects": [
+    {
+      "gid": "1209020289079877",
+      "project_name": "My Project Name",
+      "status": "Phase1",
+      "timestamp": "2025-11-27T10:30:15.123456"
+    }
+  ]
+}
+```
+
+### GET `/api/health`
+Health check endpoint.
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "projects_tracked": 5
+}
+```
 
 ## Testing
 
-Use the test script to verify the monitoring server:
+You can test the monitoring server using the test script:
 
 ```bash
 python test_monitoring_server.py
 ```
 
-Or test manually:
+Or manually with curl:
 
 ```bash
-# Phase 1
-curl -X POST http://localhost:8002 \
+curl -X POST http://localhost:8002/api/status \
   -H "Content-Type: application/json" \
-  -d '{"asana GID": "1209020289079877", "status": "Phase1", "asana project name": "Test Project"}'
-
-# Phase 2
-curl -X POST http://localhost:8002 \
-  -H "Content-Type: application/json" \
-  -d '{"asana GID": "1209020289079877", "status": "Phase2", "asana project name": "Test Project"}'
-
-# Phase 3
-curl -X POST http://localhost:8002 \
-  -H "Content-Type: application/json" \
-  -d '{"asana GID": "1209020289079877", "status": "Phase3", "asana project name": "Test Project"}'
+  -d '{
+    "asana GID": "1209020289079877",
+    "status": "Phase1",
+    "asana project name": "Test Project"
+  }'
 ```
 
-## Troubleshooting
+## Notes
 
-### Server won't start
-
-- Check if port 8002 is already in use
-- Ensure Flask is installed: `pip install flask flask-cors`
-
-### Dashboard not updating
-
-- Check browser console for errors
-- Verify the server is running
-- Check network tab to see if API calls are being made
-
-### CSV file not created
-
-- Check file permissions in the `monitoring/` directory
-- Ensure the directory exists
-
-## Architecture
-
-- **Flask Server**: Handles HTTP requests and serves the dashboard
-- **In-memory Storage**: Keeps project statuses in memory for fast access
-- **CSV Logging**: Persistent storage of all status updates
-- **WebSocket Alternative**: Uses polling (2-second intervals) for real-time updates
-
-## Future Enhancements
-
-Potential improvements:
-- WebSocket support for true real-time updates
-- Historical data visualization
-- Export to other formats (JSON, Excel)
-- Email/Slack notifications
-- Project filtering and search
-- Status history timeline
+- The server stores project status in memory for real-time updates
+- CSV file is thread-safe and can handle concurrent writes
+- If the server restarts, it will continue logging to CSV but will lose in-memory status until new updates arrive
+- The dashboard shows the latest status for each project GID
 

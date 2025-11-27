@@ -44,14 +44,80 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 
 # Projects to migrate
 # Option 1: Use project GIDs (faster, no search needed)
+# PROJECT_GIDS = [
+#     "1207816263671761",  # Van Zeeland Nursery & Landscape - done1
+#     "1211389004379875",  # Ethoscapes [VIP] - done1
+#     "1209371228065321",  # Heritage Landscapes (VIP)
+# ]
+
+
+# PROJECT_GIDS = [
+#     "1209020289079877",  # Exscape (VIP) progress
+#     "1201994636901967",  # BTS (VIP) 1034
+#     "1209670241247456", # Polina
+#     "1207401689716524", # Lena
+#     "1207599856837084", # Issue Tracker
+# ]
+
+
+# PROJECT_GIDS = [
+#     "1207744507032195", # TO BE ASSIGNED PROJECT
+#     "1208790224379335", # Debbie
+#     "1207931717530407", # Olivia
+#     "1207722134870402", # Ellie
+#     "1209755485393570", # Review Draft Responses (Mark complete when sent to client and posted on review platform)
+# ]
+
+# PROJECT_GIDS = [
+# "1207722511334892", # Lauren
+# "1206835287114553", # Earthly Possibilities
+# "1209020289079877", # Exscape (VIP)
+# "1208246397156176", # Client Status
+# "1211028802323242", # Green Impressions [VIP+]
+# ]
+
+# PROJECT_GIDS = [
+# "1211296592742932", # My Fence
+# "1207931717530299", # Matej
+# "1204820764302059", # SEO
+# "1209980831176849", # Mylessia Training
+# "1210962441602410", # SEO Dashboard
+# ]
+
 PROJECT_GIDS = [
-    # Add more project GIDs here
-    # "1207816263671761",  # Van Zeeland Nursery & Landscape - done1
-    # "1209020289079877",  # Exscape (VIP) progress
-    # "1201994636901967",  # BTS (VIP) 1034
-    "1211389004379875",  # Ethoscapes [VIP] - done1
-    # "1209371228065321",  # Heritage Landscapes (VIP)
+"1207413829228228", # Elizabeth
+"1209661531978575", # Austin
+"1209324707998092", # Big Tex Stone
+"1211067354407900", # Element Outdoor Living (VIP+)
+"1201769649997354", # Tournoux (VIP)
+"1208021047952985", # Andrea
 ]
+
+# PROJECT_GIDS = [
+# "1209757104186341", # Proposals Viewed (That are Previously Signed)
+# "1206396054073419", # Premier Pavers (VIP)
+# "1209660822940485", # Websites in Progress
+# "1202011327012956", # 🚨 ZLM (VIP)🚨
+# "1202011327012956", # Great Outdoors (VIP)
+# ]
+
+# PROJECT_GIDS = [
+# "1202017789763052", # Firesky (VIP)
+# "1211762627974041", # McKenzie Contracting [VIP]
+# "1202848664849121", # Halstead Sales & Marketing
+# "1210146503205032", # Lawn Control Center (VIP+)
+# "1207469001658854", # Duke's
+# ]
+
+# PROJECT_GIDS = [
+# "1208143258940139", # Blue Ribbon Outdoor (VIP)
+# "1201668388055244", # Halstead Media Clients
+# "377184657233986", # Halstead Content
+# "1207668601734586", # Blogs
+# "1210990004350835", # All Clients
+# ]
+
+
 
 Backup_Scoro_Project_ID = [
   "150"

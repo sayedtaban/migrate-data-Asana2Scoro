@@ -19,7 +19,7 @@ def test_monitoring_server(base_url="http://localhost:8002", project_gid="120902
     print(f"Using project GID: {project_gid}")
     print(f"Using project name: {project_name}\n")
     
-    phases = ["Phase1", "Phase2", "Phase3"]
+    phases = ["Phase1", "Phase2", "Phase3", "Complete"]
     
     for phase in phases:
         payload = {
@@ -30,10 +30,16 @@ def test_monitoring_server(base_url="http://localhost:8002", project_gid="120902
         
         try:
             print(f"Sending {phase}...")
-            response = requests.post(base_url, json=payload, timeout=2)
+            url = f"{base_url}/api/status"
+            response = requests.post(url, json=payload, timeout=2)
             print(f"  ✓ Status: {response.status_code}")
-            if response.text:
-                print(f"  Response: {response.text}")
+            if response.status_code == 200:
+                result = response.json()
+                print(f"  ✓ Success: {result.get('gid')} - {result.get('status')}")
+            elif response.text:
+                # Only show response if it's not HTML (error page)
+                if not response.text.strip().startswith('<!'):
+                    print(f"  Response: {response.text[:200]}")
         except requests.exceptions.ConnectionError:
             print(f"  ✗ Connection failed - Is the server running at {base_url}?")
             return False
@@ -53,8 +59,8 @@ def test_monitoring_server(base_url="http://localhost:8002", project_gid="120902
 if __name__ == "__main__":
     # Allow custom URL, GID, and name via command line
     url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8002"
-    gid = sys.argv[2] if len(sys.argv) > 2 else "1209020289079877"
-    name = sys.argv[3] if len(sys.argv) > 3 else "Sample Project"
+    gid = sys.argv[2] if len(sys.argv) > 2 else "12090202823452354"
+    name = sys.argv[3] if len(sys.argv) > 3 else "second Project"
     
     success = test_monitoring_server(url, gid, name)
     sys.exit(0 if success else 1)
