@@ -97,11 +97,9 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # PROJECT_GIDS = [
 #   "1207931717530335", # Dani - 1933 tasks
 #   "1208021047952985", # Andrea - 1320 tasks
-#   "1206494161312836", # OKRs - 183 tasks
-#   "1204820764302059", # SEO - 228 tasks
-#   "1202598063397832", # Evolve - 140 tasks
 #   "1209226309317546", # Alt's Operation - 361 tasks
 #   "1204189444291008", # BUILT. - 201 tasks
+#   "1206494161312836", # OKRs - 183 tasks
 # ]
 
 
@@ -111,7 +109,7 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1201997748599110", # PurGreen - 146 tasks
 #   "1207721928698549", # Task Clarity Training - 157 tasks
 #   "1203894445821642", # Cedar Hills Landscaping - 104 tasks
-#   "1210467184621570", # Websites In Progress - 149 tasks
+
 # ]
 
 # PROJECT_GIDS = [
@@ -121,8 +119,7 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1210873210287559", # Exscape Group - 184 tasks
 #   "1200670717859396", # [H] Billing Master - 70 tasks
 #   "1200670785956334", # [H] Department MPP - 183 tasks
-#   "1209331657533757", # Freelancers - 122 tasks
-#   "1209205137475783", # Starbucks Landscaping - 199 tasks
+
 # ]
 
 # PROJECT_GIDS = [
@@ -185,6 +182,8 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # "1207722511334892", # Lauren - 7412 tasks
 # "1208246397156176", # Client Status - 4158 tasks
 # "1207931717530299", # Matej - 5681 tasks
+#   "1204820764302059", # SEO - 228 tasks
+#   "1202598063397832", # Evolve - 140 tasks
 # ]
 
 # PROJECT_GIDS = [
@@ -196,6 +195,7 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1207469001658854", # Duke's - 473 tasks
 #   "1202011327012956", # 🚨 ZLM (VIP)🚨 - 1837 tasks
 #   "1201843675611835", # Great Outdoors (VIP) - 800
+#   "1210467184621570", # Websites In Progress - 149 tasks
 # ]
 
 # PROJECT_GIDS = [
@@ -208,6 +208,8 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1201805737718436", # Teddy's (VIP) - 1045 tasks
 #   "1209670241247456", # Polina - 2882 tasks
 #   "1207599856837084", # Issue Tracker - 986 tasks
+#   "1209331657533757", # Freelancers - 122 tasks
+#   "1209205137475783", # Starbucks Landscaping - 199 tasks
 # ]
 
 # PROJECT_GIDS = [
