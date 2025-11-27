@@ -83,13 +83,38 @@ def retry_with_backoff(max_retries: int = MAX_RETRIES, delay: float = RETRY_DELA
                         logger.error(f"Max retries ({max_retries}) exceeded for {func.__name__}: {e}")
                         raise
                     
-                    # Check if error is retryable (5xx errors, rate limits, timeouts)
+                    # Check if error is retryable
+                    is_retryable = False
+                    retry_reason = None
+                    
+                    # Check for HTTP status codes (5xx errors, rate limits)
                     status = getattr(e, 'status', None) if hasattr(e, 'status') else None
                     if hasattr(e, 'response') and e.response is not None:
                         status = e.response.status_code
                     
                     if status and status in [429, 500, 502, 503, 504]:
-                        logger.warning(f"Retryable error {status} in {func.__name__}, retrying in {current_delay}s (attempt {retries}/{max_retries})...")
+                        is_retryable = True
+                        retry_reason = f"HTTP {status}"
+                    # Check for connection-level errors (no HTTP status code)
+                    elif isinstance(e, (
+                        requests.exceptions.ConnectionError,
+                        requests.exceptions.Timeout,
+                        requests.exceptions.ChunkedEncodingError,
+                    )):
+                        is_retryable = True
+                        retry_reason = f"Connection error: {type(e).__name__}"
+                    # Check for underlying connection errors (e.g., ConnectionResetError)
+                    elif hasattr(e, 'args') and e.args:
+                        error_str = str(e.args[0]) if e.args else ""
+                        if any(keyword in error_str.lower() for keyword in [
+                            'connection reset', 'connection aborted', 'broken pipe',
+                            'connection refused', 'timeout', 'network is unreachable'
+                        ]):
+                            is_retryable = True
+                            retry_reason = f"Connection issue: {error_str[:100]}"
+                    
+                    if is_retryable:
+                        logger.warning(f"Retryable error ({retry_reason}) in {func.__name__}, retrying in {current_delay}s (attempt {retries}/{max_retries})...")
                         time.sleep(current_delay)
                         current_delay *= backoff
                     else:

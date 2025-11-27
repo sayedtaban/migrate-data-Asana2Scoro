@@ -51,13 +51,7 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # ]
 
 
-# PROJECT_GIDS = [
-#     "1209020289079877",  # Exscape (VIP) progress
-#     "1201994636901967",  # BTS (VIP) 1034
-#     "1209670241247456", # Polina
-#     "1207401689716524", # Lena
-#     "1207599856837084", # Issue Tracker
-# ]
+
 
 
 # PROJECT_GIDS = [
@@ -84,14 +78,14 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # "1210962441602410", # SEO Dashboard
 # ]
 
-PROJECT_GIDS = [
-"1207413829228228", # Elizabeth
-"1209661531978575", # Austin
-"1209324707998092", # Big Tex Stone
-"1211067354407900", # Element Outdoor Living (VIP+)
-"1201769649997354", # Tournoux (VIP)
-"1208021047952985", # Andrea
-]
+# PROJECT_GIDS = [
+# "1207413829228228", # Elizabeth
+# "1209661531978575", # Austin
+# "1209324707998092", # Big Tex Stone
+# "1211067354407900", # Element Outdoor Living (VIP+)
+# "1201769649997354", # Tournoux (VIP)
+# "1208021047952985", # Andrea
+# ]
 
 # PROJECT_GIDS = [
 # "1209757104186341", # Proposals Viewed (That are Previously Signed)
@@ -117,7 +111,72 @@ PROJECT_GIDS = [
 # "1210990004350835", # All Clients
 # ]
 
+# PROJECT_GIDS = [
+#   "1209976010654781", # The Stone Man (VIP+)
+#   "1209101177425265", # 🚨 Oneill Landscape Group (VIP)🚨
+#   "1207931717530371", # Bethany
+#   "1209331657533757", # Freelancers
+#   "1208531721844593", # Martina
+# ]
 
+
+
+# PROJECT_GIDS = [
+#   "1201959466824376", # Jan Fence - My Fence (VIP)
+#   "1202198955540360", # Genesee Valley
+#   "1201997623514342", # Rutland Turf Care (VIP)
+#   "1211103877794723", # Stuarts Landscaping [VIP]
+#   "1206754892659013", # Gardens of the World (VIP)
+# ]
+
+# PROJECT_GIDS = [
+#   "1207129822443936", # Carson Outdoor Living (VIP)
+#   "1207522975026447", # Email Marketing
+#   "1207448790384675", # Social Posting
+#   "1206525987654870", # Atlantic Ridge (VIP)
+#   "1202008550450876", # GLC (VIP)
+# ]
+
+
+
+
+
+# PROJECT_GIDS = [
+#   "1201721156974866", # Second Nature (VIP)
+#   "1202115152957168", # Niedergeses Landscape [VIP]
+#   "1201923199778254", # Out of Office Schedule (OOO)
+#   "1200670717859396", # [H] Billing Master
+#   "1200670785956334", # [H] Department MPP
+# ]
+
+# PROJECT_GIDS = [
+
+# ]
+
+
+
+PROJECT_GIDS = [
+  "1209226309317546", # Alt's Operation
+  "1201997748599444", # Red Rock (VIP)
+  "1201944213595853", # 1st Impressions
+  "1204845884279023", # Hiner Outdoor Living (VIP)
+  "1210130088736420", # Southern Classic Landscape Management Inc
+  "1201805737718436", # Teddy's (VIP)
+  "1209670241247456", # Polina
+  "1207401689716524", # Lena
+  "1207599856837084", # Issue Tracker
+
+]
+
+# PROJECT_GIDS = [
+#   "706549318301154", # Joe and Tony
+#   "1205366800721766", # Hillman (VIP)
+#   "1208801508897860", # Swimm Pools (VIP)
+#   "1204067243200283", # Hollandia Outdoor Living Concepts (VIP)
+#   "1202198955540360", # Hermes
+#   "1206355124124877", # Flora Landscape Contractors
+#   "1209852258792933", # Giorgi
+# ]
 
 Backup_Scoro_Project_ID = [
   "150"
