@@ -50,46 +50,30 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #     "1209371228065321",  # Heritage Landscapes (VIP) - 384 tasks
 # ]
 
-
-
-
-
 # PROJECT_GIDS = [
 #     "1207744507032195", # TO BE ASSIGNED PROJECT - 102 tasks
 #     "1208790224379335", # Debbie - 1529 tasks
-
 # ]
-
-
 
 # PROJECT_GIDS = [
 # "1211296592742932", # My Fence - 129 tasks
 # ]
 
-
-
 # PROJECT_GIDS = [
 # "1209757104186341", # Proposals Viewed (That are Previously Signed) - 554 tasks
 # "1206396054073419", # Premier Pavers (VIP) - 704 tasks
 # "1209660822940485", # Websites in Progress - 575 tasks
-
 # ]
 
 # PROJECT_GIDS = [
 # "1202017789763052", # Firesky (VIP) - 1765 tasks
 # "1211762627974041", # McKenzie Contracting [VIP] - 279 tasks
-
 # ]
-
-
 
 # PROJECT_GIDS = [
 #   "1209976010654781", # The Stone Man (VIP+) - 445 tasks
 #   "1209101177425265", # 🚨 Oneill Landscape Group (VIP)🚨 - 654 tasks
-
 # ]
-
-
 
 # PROJECT_GIDS = [
 #   "1201959466824376", # Jan Fence - My Fence (VIP) - 2237 tasks
@@ -101,13 +85,11 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 
 # PROJECT_GIDS = [
 #   "1207129822443936", # Carson Outdoor Living (VIP) - 980 tasks
-
 # ]
 
 # PROJECT_GIDS = [
 #   "1201721156974866", # Second Nature (VIP) - 890 tasks
 #   "1202115152957168", # Niedergeses Landscape [VIP] - 638 tasks
-
 # ]
 
 # =================================
@@ -116,6 +98,7 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1206494161312836", # OKRs - 183 tasks
 #   "1204820764302059", # SEO - 228 tasks
 #   "1202598063397832", # Evolve - 140 tasks
+#   "1209226309317546", # Alt's Operation - 361 tasks
 #   "1204189444291008", # BUILT. - 201 tasks
 # ]
 
@@ -209,7 +192,6 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1207401689716524", # Lena - 4794 tasks
 #   "1207668601734586", # Blogs - 919 tasks
 #   "1210990004350835", # All Clients - 402 tasks
-#   "1209226309317546", # Alt's Operation - 361 tasks
 #   "1201997748599444", # Red Rock (VIP) - 578 tasks
 #   "1201944213595853", # 1st Impressions - 600 tasks
 #   "1204845884279023", # Hiner Outdoor Living (VIP) - 917 tasks
