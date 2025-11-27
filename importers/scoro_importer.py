@@ -716,10 +716,10 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                             except Exception as e:
                                 logger.warning(f"    Error resolving owner '{owner_name}': {e}")
                         
-                        # Ensure owner_id is set - use Tom Sanpakit (user_id: 1) as fallback if not available
+                        # Ensure owner_id is set - use To Be Assigned (user_id: 37) as fallback if not available
                         if not task_data.get('owner_id'):
-                            task_data['owner_id'] = 1
-                            logger.debug(f"    No owner_id available. Setting fallback owner_id to 1 (Tom Sanpakit)")
+                            task_data['owner_id'] = 37
+                            logger.debug(f"    No owner_id available. Setting fallback owner_id to 37 (To Be Assigned)")
                         
                         # - assigned_to_name -> related_users (Array of user IDs)
                         # NOTE: assigned_to_name should contain ONLY the primary assignee (not followers)
@@ -752,10 +752,10 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                             except Exception as e:
                                 logger.warning(f"    Error resolving assignees '{assigned_to_name}': {e}")
                         
-                        # Ensure related_users (assignees) is set - use Tom Sanpakit (user_id: 1) as fallback if not available
+                        # Ensure related_users (assignees) is set - use To Be Assigned (user_id: 37) as fallback if not available
                         if not task_data.get('related_users'):
-                            task_data['related_users'] = [1]
-                            logger.debug(f"    No assignees available. Setting fallback related_users to [1] (Tom Sanpakit)")
+                            task_data['related_users'] = [37]
+                            logger.debug(f"    No assignees available. Setting fallback related_users to [37] (To Be Assigned)")
                         
                         # - project_phase_name -> project_phase_id (Integer)
                         project_phase_name = task_data.get('project_phase_name')
@@ -985,10 +985,10 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                             time_entry_data['user_id'] = owner_id
                                             logger.debug(f"      [{idx}/{len(calculated_time_entries)}] Using task owner_id {owner_id} as fallback for time entry user")
                                         else:
-                                            # Final fallback: Use Tom Sanpakit (user_id: 1) if no user_id or owner_id available
-                                            task_data['owner_id'] = 1
-                                            time_entry_data['user_id'] = 1
-                                            logger.debug(f"      [{idx}/{len(calculated_time_entries)}] No user_id or owner_id available. Setting owner_id and using fallback user_id 1 (Tom Sanpakit) for time entry")
+                                            # Final fallback: Use To Be Assigned (user_id: 37) if no user_id or owner_id available
+                                            task_data['owner_id'] = 37
+                                            time_entry_data['user_id'] = 37
+                                            logger.debug(f"      [{idx}/{len(calculated_time_entries)}] No user_id or owner_id available. Setting owner_id and using fallback user_id 37 (To Be Assigned) for time entry")
                                     
                                     # Create time entry via Scoro Time Entries API
                                     time_entry = scoro_client.create_time_entry(time_entry_data)
@@ -1331,8 +1331,8 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                             
                             # Ensure owner_id is set
                             if not subtask_data.get('owner_id'):
-                                subtask_data['owner_id'] = 1
-                                logger.debug(f"    No subtask owner_id available. Setting fallback to 1 (Tom Sanpakit)")
+                                subtask_data['owner_id'] = 37
+                                logger.debug(f"    No subtask owner_id available. Setting fallback to 37 (To Be Assigned)")
                             
                             # - assigned_to_name -> related_users
                             assigned_to_name = subtask_data.get('assigned_to_name')
@@ -1362,8 +1362,8 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                             
                             # Ensure related_users is set
                             if not subtask_data.get('related_users'):
-                                subtask_data['related_users'] = [1]
-                                logger.debug(f"    No subtask assignees available. Setting fallback to [1] (Tom Sanpakit)")
+                                subtask_data['related_users'] = [37]
+                                logger.debug(f"    No subtask assignees available. Setting fallback to [37] (To Be Assigned)")
                             
                             # - project_phase_name -> project_phase_id (inherited from parent, but resolve if needed)
                             project_phase_name = subtask_data.get('project_phase_name')
@@ -1540,7 +1540,7 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                     else:
                                         logger.error(f"    ✗ Failed to update task status after retries")
                                 elif should_update_status and scoro_task_id is None:
-                                    logger.error(f"    ✗ Cannot update task/ status: Task ID not available")
+                                    logger.error(f"    ✗ Cannot update task status: Task ID not available")
                             except Exception as e:
                                 logger.warning(f"    ⚠ Failed to update task status: {e}")
                             
