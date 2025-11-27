@@ -3,7 +3,9 @@ Main entry point for Asana to Scoro migration script
 """
 import sys
 import json
+import argparse
 from datetime import datetime
+import requests
 
 from clients import AsanaClient, ScoroClient
 from models import MigrationSummary
@@ -12,6 +14,27 @@ from transformers import transform_data, reset_task_tracker, get_deduplication_s
 from importers import import_to_scoro
 from utils import logger
 from config import PROJECT_GIDS, PROJECT_NAMES, WORKSPACE_GID, MIGRATION_MODE
+
+
+def send_status_update(project_gid, status):
+    """
+    Send migration status update to monitoring server
+    
+    Args:
+        project_gid: Asana project GID
+        status: Phase status (Phase1, Phase2, Phase3)
+    """
+    try:
+        url = "http://localhost:8002"
+        payload = {
+            "asana GID": str(project_gid),
+            "status": status
+        }
+        response = requests.post(url, json=payload, timeout=2)
+        logger.debug(f"Status update sent: {payload} - Response: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        # Silently fail if monitoring server is not available
+        logger.debug(f"Could not send status update to monitoring server: {e}")
 
 
 def migrate_single_project(asana_client, scoro_client, project_gid=None, project_name=None, workspace_gid=None):
@@ -37,6 +60,10 @@ def migrate_single_project(asana_client, scoro_client, project_gid=None, project
         logger.info(f"PHASE 1: EXPORT FROM ASANA")
         logger.info(f"{'='*60}")
         
+        # Send status update for Phase 1
+        if project_gid:
+            send_status_update(project_gid, "Phase1")
+        
         if project_gid:
             logger.info(f"\nExporting project from Asana using GID: {project_gid}...")
             logger.info(f"Using project GID: {project_gid}, workspace GID: {workspace_gid}")
@@ -55,19 +82,32 @@ def migrate_single_project(asana_client, scoro_client, project_gid=None, project
         
         logger.info(f"✓ Successfully exported project with {len(asana_data.get('tasks', []))} tasks")
         
-        # Display project details
+        # Display project details and get GID for status updates
+        actual_project_gid = project_gid
         if asana_data.get('project'):
             proj = asana_data['project']
+            # Use GID from exported data if we didn't have it initially (migrating by name)
+            if not actual_project_gid:
+                actual_project_gid = proj.get('gid')
             logger.info("Project Details Retrieved:")
             logger.info(f"  Name: {proj.get('name', 'N/A')}")
             logger.info(f"  GID: {proj.get('gid', 'N/A')}")
             logger.info(f"  Created: {proj.get('created_at', 'N/A')}")
             logger.info(f"  Modified: {proj.get('modified_at', 'N/A')}")
         
+        # Send Phase 1 status update if we now have the GID
+        if actual_project_gid and not project_gid:
+            send_status_update(actual_project_gid, "Phase1")
+        
         # Transform data
         logger.info(f"\n{'='*60}")
         logger.info(f"PHASE 2: TRANSFORM DATA")
         logger.info(f"{'='*60}")
+        
+        # Send status update for Phase 2
+        if actual_project_gid:
+            send_status_update(actual_project_gid, "Phase2")
+        
         logger.info("\nTransforming data...")
         transformed_data = transform_data(asana_data, summary)
         logger.info("✓ Data transformation completed")
@@ -76,6 +116,11 @@ def migrate_single_project(asana_client, scoro_client, project_gid=None, project
         logger.info(f"\n{'='*60}")
         logger.info(f"PHASE 3: IMPORT TO SCORO")
         logger.info(f"{'='*60}")
+        
+        # Send status update for Phase 3
+        if actual_project_gid:
+            send_status_update(actual_project_gid, "Phase3")
+        
         logger.info("\n" + "-"*60)
         logger.info("NOTE: Import to Scoro is currently enabled.")
         logger.info("-"*60)
@@ -112,6 +157,24 @@ def migrate_single_project(asana_client, scoro_client, project_gid=None, project
 
 def main():
     """Main execution function"""
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description='Migrate projects from Asana to Scoro',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python main.py 1209020289079877
+  python main.py 1209020289079877 1201994636901967 1211389004379875
+  python main.py  # Uses PROJECT_GIDS from config.py if no arguments provided
+        """
+    )
+    parser.add_argument(
+        'project_gids',
+        nargs='*',
+        help='One or more Asana project GIDs to migrate (e.g., 1209020289079877)'
+    )
+    args = parser.parse_args()
+    
     logger.info("\n" + "="*60)
     logger.info("ASANA TO SCORO MIGRATION SCRIPT")
     logger.info("="*60 + "\n")
@@ -122,6 +185,21 @@ def main():
     
     # Track results for all projects
     all_results = []
+    
+    # Determine which project GIDs to use: command line args take precedence
+    project_gids_to_migrate = args.project_gids if args.project_gids else None
+    
+    if project_gids_to_migrate:
+        logger.info(f"Using project GIDs from command line: {project_gids_to_migrate}")
+    else:
+        # Fall back to config.py
+        if MIGRATION_MODE == 'gids':
+            project_gids_to_migrate = PROJECT_GIDS if PROJECT_GIDS else None
+            if project_gids_to_migrate:
+                logger.info(f"Using project GIDs from config.py: {project_gids_to_migrate}")
+        elif MIGRATION_MODE == 'names':
+            # If using names mode and no CLI args, use names from config
+            project_gids_to_migrate = None
     
     try:
         # Initialize clients
@@ -168,18 +246,15 @@ def main():
             logger.error(f"✗ Error connecting to Scoro: {e}")
         
         # Determine which projects to migrate
-        if MIGRATION_MODE == 'gids':
-            if not PROJECT_GIDS:
-                logger.error("No project GIDs configured. Please add project GIDs to config.py")
-                return
-            
+        if project_gids_to_migrate:
+            # Migrate by GIDs (from command line or config)
             logger.info(f"\n{'='*60}")
-            logger.info(f"MIGRATING {len(PROJECT_GIDS)} PROJECT(S) BY GID")
+            logger.info(f"MIGRATING {len(project_gids_to_migrate)} PROJECT(S) BY GID")
             logger.info(f"{'='*60}")
             
-            for idx, project_gid in enumerate(PROJECT_GIDS, 1):
+            for idx, project_gid in enumerate(project_gids_to_migrate, 1):
                 logger.info(f"\n{'#'*60}")
-                logger.info(f"PROJECT {idx}/{len(PROJECT_GIDS)}: GID {project_gid}")
+                logger.info(f"PROJECT {idx}/{len(project_gids_to_migrate)}: GID {project_gid}")
                 logger.info(f"{'#'*60}")
                 
                 result = migrate_single_project(
@@ -197,11 +272,8 @@ def main():
                     if 'error' in result:
                         logger.error(f"  Error: {result['error']}")
         
-        elif MIGRATION_MODE == 'names':
-            if not PROJECT_NAMES:
-                logger.error("No project names configured. Please add project names to config.py")
-                return
-            
+        elif MIGRATION_MODE == 'names' and PROJECT_NAMES:
+            # Migrate by names (only if no CLI args and names mode is set)
             logger.info(f"\n{'='*60}")
             logger.info(f"MIGRATING {len(PROJECT_NAMES)} PROJECT(S) BY NAME")
             logger.info(f"{'='*60}")
@@ -226,7 +298,9 @@ def main():
                     if 'error' in result:
                         logger.error(f"  Error: {result['error']}")
         else:
-            logger.error(f"Invalid MIGRATION_MODE: {MIGRATION_MODE}. Must be 'gids' or 'names'")
+            logger.error("No project GIDs provided via command line and none configured in config.py")
+            logger.error("Usage: python main.py <project_gid1> [project_gid2] ...")
+            logger.error("Or configure PROJECT_GIDS in config.py")
             return
         
         # Print deduplication statistics
