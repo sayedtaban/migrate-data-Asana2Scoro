@@ -16,13 +16,14 @@ from utils import logger
 from config import PROJECT_GIDS, PROJECT_NAMES, WORKSPACE_GID, MIGRATION_MODE
 
 
-def send_status_update(project_gid, status):
+def send_status_update(project_gid, status, project_name=None):
     """
     Send migration status update to monitoring server
     
     Args:
         project_gid: Asana project GID
         status: Phase status (Phase1, Phase2, Phase3)
+        project_name: Asana project name (optional)
     """
     try:
         url = "http://localhost:8002"
@@ -30,6 +31,8 @@ def send_status_update(project_gid, status):
             "asana GID": str(project_gid),
             "status": status
         }
+        if project_name:
+            payload["asana project name"] = project_name
         response = requests.post(url, json=payload, timeout=2)
         logger.debug(f"Status update sent: {payload} - Response: {response.status_code}")
     except requests.exceptions.RequestException as e:
@@ -60,9 +63,9 @@ def migrate_single_project(asana_client, scoro_client, project_gid=None, project
         logger.info(f"PHASE 1: EXPORT FROM ASANA")
         logger.info(f"{'='*60}")
         
-        # Send status update for Phase 1
+        # Send status update for Phase 1 (with name if available)
         if project_gid:
-            send_status_update(project_gid, "Phase1")
+            send_status_update(project_gid, "Phase1", project_name=project_name)
         
         if project_gid:
             logger.info(f"\nExporting project from Asana using GID: {project_gid}...")
@@ -82,22 +85,26 @@ def migrate_single_project(asana_client, scoro_client, project_gid=None, project
         
         logger.info(f"✓ Successfully exported project with {len(asana_data.get('tasks', []))} tasks")
         
-        # Display project details and get GID for status updates
+        # Display project details and get GID/name for status updates
         actual_project_gid = project_gid
+        actual_project_name = project_name
+        proj = None
         if asana_data.get('project'):
             proj = asana_data['project']
             # Use GID from exported data if we didn't have it initially (migrating by name)
             if not actual_project_gid:
                 actual_project_gid = proj.get('gid')
+            # Always use the name from exported data (most accurate)
+            actual_project_name = proj.get('name', project_name)
             logger.info("Project Details Retrieved:")
             logger.info(f"  Name: {proj.get('name', 'N/A')}")
             logger.info(f"  GID: {proj.get('gid', 'N/A')}")
             logger.info(f"  Created: {proj.get('created_at', 'N/A')}")
             logger.info(f"  Modified: {proj.get('modified_at', 'N/A')}")
         
-        # Send Phase 1 status update if we now have the GID
+        # Send Phase 1 status update if we now have the GID (migrating by name case)
         if actual_project_gid and not project_gid:
-            send_status_update(actual_project_gid, "Phase1")
+            send_status_update(actual_project_gid, "Phase1", project_name=actual_project_name)
         
         # Transform data
         logger.info(f"\n{'='*60}")
@@ -106,7 +113,7 @@ def migrate_single_project(asana_client, scoro_client, project_gid=None, project
         
         # Send status update for Phase 2
         if actual_project_gid:
-            send_status_update(actual_project_gid, "Phase2")
+            send_status_update(actual_project_gid, "Phase2", project_name=actual_project_name)
         
         logger.info("\nTransforming data...")
         transformed_data = transform_data(asana_data, summary)
@@ -119,7 +126,7 @@ def migrate_single_project(asana_client, scoro_client, project_gid=None, project
         
         # Send status update for Phase 3
         if actual_project_gid:
-            send_status_update(actual_project_gid, "Phase3")
+            send_status_update(actual_project_gid, "Phase3", project_name=actual_project_name)
         
         logger.info("\n" + "-"*60)
         logger.info("NOTE: Import to Scoro is currently enabled.")
@@ -137,7 +144,8 @@ def migrate_single_project(asana_client, scoro_client, project_gid=None, project
         
         # Save export data to file for inspection
         logger.info("Saving exported data to file...")
-        project_name_safe = proj.get('name', project_identifier).replace(' ', '_').replace('/', '_')
+        project_name_for_file = actual_project_name if actual_project_name else project_identifier
+        project_name_safe = project_name_for_file.replace(' ', '_').replace('/', '_')
         output_file = f"asana_export_{project_name_safe}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(asana_data, f, indent=2, default=str)
@@ -146,8 +154,8 @@ def migrate_single_project(asana_client, scoro_client, project_gid=None, project
         return {
             'success': True,
             'summary': summary,
-            'project': proj.get('name', project_identifier),
-            'project_gid': proj.get('gid', project_gid)
+            'project': actual_project_name if actual_project_name else project_identifier,
+            'project_gid': actual_project_gid if actual_project_gid else project_gid
         }
         
     except Exception as e:
