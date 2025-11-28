@@ -14,7 +14,7 @@ load_dotenv()
 # - 0.1s (100ms) = safe default, ~10 calls/second
 # - 0.05s (50ms) = faster, ~20 calls/second (use if API allows)
 # - 0.2s (200ms) = slower, ~5 calls/second (use if getting 429 errors)
-RATE_LIMIT_DELAY = 0.05  # Delay between API calls in seconds (100ms)
+RATE_LIMIT_DELAY = 0.1  # Delay between API calls in seconds (100ms)
 MAX_RETRIES = 3  # Maximum number of retries for failed API calls
 RETRY_DELAY = 1  # Initial delay between retries in seconds
 RETRY_BACKOFF = 2  # Exponential backoff multiplier
@@ -92,6 +92,11 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1202115152957168", # Niedergeses Landscape [VIP] - 638 tasks
 # ]
 
+# PROJECT_GIDS = [
+#   "1208236324570171", # Billing Videoshoots - 2 tasks
+#   "1207129822443940", # 🚨J&J Landscape Management(VIP+)🚨 - 1094 tasks
+# ]
+
 # =================================
 
 # PROJECT_GIDS = [
@@ -109,7 +114,6 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1201997748599110", # PurGreen - 146 tasks
 #   "1207721928698549", # Task Clarity Training - 157 tasks
 #   "1203894445821642", # Cedar Hills Landscaping - 104 tasks
-
 # ]
 
 # PROJECT_GIDS = [
@@ -119,11 +123,11 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1210873210287559", # Exscape Group - 184 tasks
 #   "1200670717859396", # [H] Billing Master - 70 tasks
 #   "1200670785956334", # [H] Department MPP - 183 tasks
-
 # ]
 
 # PROJECT_GIDS = [
 # "1209661531978575", # Austin - 3110 tasks
+# "1208246397156176", # Client Status - 4158 tasks
 #   "1209020347269547", # Lawn & Order - 92 tasks
 #   "1209373005483148", # Vision Design Landscaping - 120 tasks
 #   "1206124874487664", # Top Rock Design - 69 tasks
@@ -133,12 +137,12 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # ]
 
 # PROJECT_GIDS = [
-# "1207413829228228", # Elizabeth - 4177 tasks
 #   "1206707027635152", # DeBartolo - 134 tasks
 #   "1211184926575840", # KELSEY - 31 tasks
 #   "1210124803938200", # Integrations - 84 tasks
 #   "1209589888865220", # Ryan Lawn & Tree - 96 tasks
 #   "1204356110351656", # M.A.B. Landscape Group - 50 tasks
+#   "1207413829228228", # Elizabeth - 4177 tasks
 #   "1211413968568193", # Delon's Onboarding and Training - 44 tasks
 # ]
 
@@ -156,7 +160,6 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # ]
 
 # PROJECT_GIDS = [
-#   "1207129822443940", # 🚨J&J Landscape Management(VIP+)🚨 - 1094 tasks
 #   "1201959561838083", # Gary Duff (VIP) - 888 tasks
 #   "1204154752021419", # Training - 5 tasks
 #   "1211637268379824", # Project Management Tool | Reporting Transition - 22 tasks
@@ -168,6 +171,7 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1206396054073415", # TKC - 119 tasks
 # ]
 
+
 # PROJECT_GIDS = [
 #   "705893338237500", # DNU Halstead Sales & Marketing - 1829 tasks
 #   "1202001504658033", # 🚨Town & Country🚨 (VIP) - 773 tasks
@@ -178,9 +182,10 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1209020250329976", # Foremost Fence - 288 tasks
 # ]
 
+# ====== New =========
+
 # PROJECT_GIDS = [
 # "1207722511334892", # Lauren - 7412 tasks
-# "1208246397156176", # Client Status - 4158 tasks
 # "1207931717530299", # Matej - 5681 tasks
 #   "1204820764302059", # SEO - 228 tasks
 #   "1202598063397832", # Evolve - 140 tasks
@@ -353,9 +358,9 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # ]
 
 
-PROJECT_GIDS = [
-"1201668388055244", # Halstead Media Clients - 50001 tasks
-]
+# PROJECT_GIDS = [
+# "1201668388055244", # Halstead Media Clients - 50001 tasks
+# ]
 
 Backup_Scoro_Project_ID = [
   "150"

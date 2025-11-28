@@ -134,7 +134,7 @@ def migrate_single_project(asana_client, scoro_client, project_gid=None, project
         logger.info("-"*60)
         
         logger.info("\nImporting to Scoro...")
-        import_results = import_to_scoro(scoro_client, transformed_data, summary, asana_data=asana_data)
+        import_results = import_to_scoro(scoro_client, transformed_data, summary, asana_data=asana_data, project_gid=actual_project_gid)
         logger.info("✓ Import completed")
         
         # Print summary

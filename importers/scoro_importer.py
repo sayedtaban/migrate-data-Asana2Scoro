@@ -224,7 +224,8 @@ def update_task_status_with_retry(
 
 def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: MigrationSummary, 
                      batch_size: int = DEFAULT_BATCH_SIZE, asana_client: Optional[AsanaClient] = None,
-                     max_tasks: Optional[int] = TEST_MODE_MAX_TASKS, asana_data: Optional[Dict] = None) -> Dict:
+                     max_tasks: Optional[int] = TEST_MODE_MAX_TASKS, asana_data: Optional[Dict] = None,
+                     project_gid: Optional[str] = None) -> Dict:
     """
     Import transformed data into Scoro with batch processing support
     
@@ -237,6 +238,7 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
         max_tasks: Optional limit on number of tasks to migrate (for testing). 
                    Set to None to migrate all tasks. Defaults to TEST_MODE_MAX_TASKS from config.
         asana_data: Optional original Asana export data containing users map for GID lookups
+        project_gid: Optional Asana project GID for logging purposes
     
     Returns:
         Dictionary containing import results
@@ -681,13 +683,15 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
             total_batches = len(task_batches)
             
             for batch_idx, task_batch in enumerate(task_batches, 1):
-                logger.info(f"Processing batch {batch_idx}/{total_batches} ({len(task_batch)} tasks)...")
+                gid_info = f" [GID: {project_gid}]" if project_gid else ""
+                logger.info(f"Processing batch {batch_idx}/{total_batches} ({len(task_batch)} tasks){gid_info}...")
                 
                 for idx, task_data in enumerate(task_batch, 1):
                     task_name = task_data.get('title', task_data.get('name', 'Unknown'))
                     global_idx = (batch_idx - 1) * batch_size + idx
-                    logger.info(f"  [{global_idx}/{len(tasks_to_import)}] Creating task: {task_name}")
-                    print(f"  [{global_idx}/{len(tasks_to_import)}] Creating task: {task_name}")
+                    gid_info = f" [GID: {project_gid}]" if project_gid else ""
+                    logger.info(f"  [{global_idx}/{len(tasks_to_import)}] Creating task: {task_name}{gid_info}")
+                    print(f"  [{global_idx}/{len(tasks_to_import)}] Creating task: {task_name}{gid_info}")
                     try:
                         # Extract stories/comments before cleaning task_data
                         stories = task_data.get('stories', [])
@@ -1282,13 +1286,15 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                 total_subtask_batches = len(subtask_batches)
                 
                 for batch_idx, subtask_batch in enumerate(subtask_batches, 1):
-                    logger.info(f"Processing subtask batch {batch_idx}/{total_subtask_batches} ({len(subtask_batch)} tasks)...")
+                    gid_info = f" [GID: {project_gid}]" if project_gid else ""
+                    logger.info(f"Processing subtask batch {batch_idx}/{total_subtask_batches} ({len(subtask_batch)} tasks){gid_info}...")
                     
                     for idx, subtask_data in enumerate(subtask_batch, 1):
                         subtask_name = subtask_data.get('title', subtask_data.get('name', 'Unknown'))
                         global_idx = (batch_idx - 1) * batch_size + idx
-                        logger.info(f"  [{global_idx}/{len(subtasks)}] Creating task (formerly subtask): {subtask_name}")
-                        print(f"  [{global_idx}/{len(subtasks)}] Creating task (formerly subtask): {subtask_name}")
+                        gid_info = f" [GID: {project_gid}]" if project_gid else ""
+                        logger.info(f"  [{global_idx}/{len(subtasks)}] Creating task (formerly subtask): {subtask_name}{gid_info}")
+                        print(f"  [{global_idx}/{len(subtasks)}] Creating task (formerly subtask): {subtask_name}{gid_info}")
                         
                         try:
                             # Note: Parent lookup is optional - we create as regular task regardless
