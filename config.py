@@ -15,8 +15,8 @@ load_dotenv()
 # - 0.05s (50ms) = faster, ~20 calls/second (use if API allows)
 # - 0.2s (200ms) = slower, ~5 calls/second (use if getting 429 errors)
 RATE_LIMIT_DELAY = 0.1  # Delay between API calls in seconds (100ms)
-MAX_RETRIES = 3  # Maximum number of retries for failed API calls
-RETRY_DELAY = 1  # Initial delay between retries in seconds
+MAX_RETRIES = 10  # Maximum number of retries for failed API calls
+RETRY_DELAY = 2  # Initial delay between retries in seconds
 RETRY_BACKOFF = 2  # Exponential backoff multiplier
 
 # Batch processing configuration
@@ -56,7 +56,7 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # ]
 
 # PROJECT_GIDS = [
-# "1211296592742932", # My Fence - 129 tasks
+# "c", # My Fence - 129 tasks
 # ]
 
 # PROJECT_GIDS = [
@@ -77,10 +77,6 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 
 # PROJECT_GIDS = [
 #   "1201959466824376", # Jan Fence - My Fence (VIP) - 2237 tasks
-#   "1202198955540360", # Genesee Valley - 566 tasks
-#   "1201997623514342", # Rutland Turf Care (VIP) - 563 tasks
-#   "1211103877794723", # Stuarts Landscaping [VIP] - 162 tasks
-#   "1206754892659013", # Gardens of the World (VIP) - 523 tasks
 # ]
 
 # PROJECT_GIDS = [
@@ -97,7 +93,25 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1207129822443940", # 🚨J&J Landscape Management(VIP+)🚨 - 1094 tasks
 # ]
 
-# =================================
+# PROJECT_GIDS = [
+#   "1201959561838083", # Gary Duff (VIP) - 888 tasks
+#   "1204154752021419", # Training - 5 tasks
+#   "1211637268379824", # Project Management Tool | Reporting Transition - 22 tasks
+#   "1208183190857136", # Jim's Training - 133 tasks
+#   "1206396054073411", # Wenzel - 192 tasks
+#   "1209773444928037", # Vermont Stone (VS&H Construction) ['25] - 145 tasks
+#   "1208236324570171", # Billing Videoshoots - 2 tasks
+#   "1153054154859564", # TKC - 257 tasks
+#   "1206396054073415", # TKC - 119 tasks
+# ]
+
+# PROJECT_GIDS = [
+#   "1207931717530371", # Bethany - 2448 tasks
+# ]
+
+
+
+# =================================================11/28=============================================== #
 
 # PROJECT_GIDS = [
 #   "1207931717530335", # Dani - 1933 tasks
@@ -126,8 +140,8 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # ]
 
 # PROJECT_GIDS = [
-# "1209661531978575", # Austin - 3110 tasks
-# "1208246397156176", # Client Status - 4158 tasks
+#   "1209661531978575", # Austin - 3110 tasks
+#   "1208246397156176", # Client Status - 4158 tasks
 #   "1209020347269547", # Lawn & Order - 92 tasks
 #   "1209373005483148", # Vision Design Landscaping - 120 tasks
 #   "1206124874487664", # Top Rock Design - 69 tasks
@@ -147,7 +161,31 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # ]
 
 # PROJECT_GIDS = [
-#   "1207931717530371", # Bethany - 2448 tasks
+#   "705893338237500", # DNU Halstead Sales & Marketing - 1829 tasks
+#   "1202001504658033", # 🚨Town & Country🚨 (VIP) - 773 tasks
+#   "1202067237365290", # Platinum (VIP) - 501 tasks
+#   "1201944915672225", # Troy Clogg - 779 tasks
+#   "1210226294651081", # Christine - 108 tasks
+#   "1201759996136469", # Premier Landscaping Inc. - 367 tasks
+#   "1209020250329976", # Foremost Fence - 288 tasks
+# ]
+
+# ==================================================11/29================================================= #
+
+
+# PROJECT_GIDS = [
+#   "706549318301154", # Joe and Tony - 356 tasks
+#   "1205366800721766", # Hillman (VIP) - 652 tasks
+#   "1208801508897860", # Swimm Pools (VIP) - 436 tasks
+#   "1204067243200283", # Hollandia Outdoor Living Concepts (VIP) - 586 tasks
+#   "1202198955540360", # Hermes - 566 tasks
+#   "1206355124124877", # Flora Landscape Contractors - 497 tasks
+#   "1209852258792933", # Giorgi - 536 tasks
+# ]
+
+
+# PROJECT_GIDS = [
+#   "1209563150341870", # Genesee Valley - 566 tasks
 #   "1208531721844593", # Martina - 1395 tasks
 #   "1180237628314967", # Platinum - 18 tasks
 #   "1199187158790731", # MyFence2Go - SEO - 58 tasks
@@ -160,37 +198,13 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # ]
 
 # PROJECT_GIDS = [
-#   "1201959561838083", # Gary Duff (VIP) - 888 tasks
-#   "1204154752021419", # Training - 5 tasks
-#   "1211637268379824", # Project Management Tool | Reporting Transition - 22 tasks
-#   "1208183190857136", # Jim's Training - 133 tasks
-#   "1206396054073411", # Wenzel - 192 tasks
-#   "1209773444928037", # Vermont Stone (VS&H Construction) ['25] - 145 tasks
-#   "1208236324570171", # Billing Videoshoots - 2 tasks
-#   "1153054154859564", # TKC - 257 tasks
-#   "1206396054073415", # TKC - 119 tasks
-# ]
-
-
-# PROJECT_GIDS = [
-#   "705893338237500", # DNU Halstead Sales & Marketing - 1829 tasks
-#   "1202001504658033", # 🚨Town & Country🚨 (VIP) - 773 tasks
-#   "1202067237365290", # Platinum (VIP) - 501 tasks
-#   "1201944915672225", # Troy Clogg - 779 tasks
-#   "1210226294651081", # Christine - 108 tasks
-#   "1201759996136469", # Premier Landscaping Inc. - 367 tasks
-#   "1209020250329976", # Foremost Fence - 288 tasks
-# ]
-
-# ====== New =========
-
-
-
-# PROJECT_GIDS = [
+#   "1209755485393570", # Review Draft Responses (Mark complete when sent to client and posted on review platform) - 2351 tasks
+#   "1201997623514342", # Rutland Turf Care (VIP) - 563 tasks
+#   "1211103877794723", # Stuarts Landscaping [VIP] - 162 tasks
+#   "1206754892659013", # Gardens of the World (VIP) - 523 tasks
 #   "1204820764302059", # SEO - 228 tasks
 #   "1202598063397832", # Evolve - 140 tasks
 #   "1202008550450876", # GLC (VIP) - 697 tasks
-#   "1209755485393570", # Review Draft Responses (Mark complete when sent to client and posted on review platform) - 2351 tasks
 #   "1201923199778254", # Out of Office Schedule (OOO) - 755 tasks
 # ]
 
@@ -219,15 +233,7 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1209205137475783", # Starbucks Landscaping - 199 tasks
 # ]
 
-# PROJECT_GIDS = [
-#   "706549318301154", # Joe and Tony - 356 tasks
-#   "1205366800721766", # Hillman (VIP) - 652 tasks
-#   "1208801508897860", # Swimm Pools (VIP) - 436 tasks
-#   "1204067243200283", # Hollandia Outdoor Living Concepts (VIP) - 586 tasks
-#   "1202198955540360", # Hermes - 566 tasks
-#   "1206355124124877", # Flora Landscape Contractors - 497 tasks
-#   "1209852258792933", # Giorgi - 536 tasks
-# ]
+# =================================================11/30================================================== #
 
 # PROJECT_GIDS = [
 #   "1206082775373071", # Apple LandScape Design (VIP) - 402 tasks
@@ -239,6 +245,7 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # ]
 
 # PROJECT_GIDS = [
+# "1207931717530299", # Matej - 5681 tasks
 #   "1202103717323633", # Sammarco (VIP) - 691 tasks
 #   "1202008494907041", # Fein - 445 tasks
 #   "1201994653016894", # Country Lawn Care - 600 tasks
@@ -279,7 +286,10 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1208574178647908", # BayTerra - 431 tasks
 # ]
 
+# =================================================12/1================================================== #
+
 # PROJECT_GIDS = [
+# "1207722511334892", # Lauren - 7412 tasks
 #   "1202029877560391", # Landscape Architecture - 426 tasks
 #   "1207285748194854", # Daybreaker Landscapes - 360 tasks
 #   "1202103810014649", # Santucci - 261 tasks
@@ -316,18 +326,21 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # "1201769649997354", # Tournoux (VIP) - 657 tasks
 # ]
 
+# =================================================12/2================================================== #
+
 
 # PROJECT_GIDS = [
+#   "1206838003174635", # PureModern - 1098 tasks
 #   "1202029935776209", # Local Life - 415 tasks
 #   "1204427552401501", # Elizabeth 2023: Interview Asana Project - 211 tasks
 #   "1201236676138365", # Content Management - 353 tasks
 #   "1201995259444316", # E.P. Jansen - 272 tasks
 #   "1209391945032267", # HomeTurf Landscapes (VIP) - 313 tasks
 #   "1210941400014664", # TH test project July 2025 - 275 tasks
-#   "1206838003174635", # PureModern - 1098 tasks
 # ]
 
 # PROJECT_GIDS = [
+# "1207401689716524", # Lena - 4794 tasks
 #   "377184657233986",  # Halstead Content - 264 tasks
 #   "1210130088736420", # Southern Classic Landscape Management Inc - 293 tasks
 #   "1201994699804530", # Antonucci - 592 tasks
@@ -355,13 +368,8 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1202103765718385", # Rine - 722 tasks
 # ]
 
-# PROJECT_GIDS = [
-# "1207722511334892", # Lauren - 7412 tasks
-# "1207931717530299", # Matej - 5681 tasks
-#   "1207401689716524", # Lena - 4794 tasks
 
-# ]
-
+# =================================================12/1================================================== #
 
 # PROJECT_GIDS = [
 # "1201668388055244", # Halstead Media Clients - 50001 tasks
