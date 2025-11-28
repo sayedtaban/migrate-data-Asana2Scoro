@@ -184,17 +184,17 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 
 # ====== New =========
 
-# PROJECT_GIDS = [
-# "1207722511334892", # Lauren - 7412 tasks
-# "1207931717530299", # Matej - 5681 tasks
-#   "1204820764302059", # SEO - 228 tasks
-#   "1202598063397832", # Evolve - 140 tasks
-# ]
+
 
 # PROJECT_GIDS = [
+#   "1204820764302059", # SEO - 228 tasks
+#   "1202598063397832", # Evolve - 140 tasks
 #   "1202008550450876", # GLC (VIP) - 697 tasks
 #   "1209755485393570", # Review Draft Responses (Mark complete when sent to client and posted on review platform) - 2351 tasks
 #   "1201923199778254", # Out of Office Schedule (OOO) - 755 tasks
+# ]
+
+# PROJECT_GIDS = [
 #   "1202848664849121", # Halstead Sales & Marketing - 2454 tasks
 #   "1210146503205032", # Lawn Control Center (VIP+) - 361 tasks
 #   "1207469001658854", # Duke's - 473 tasks
@@ -204,12 +204,14 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # ]
 
 # PROJECT_GIDS = [
-#   "1207401689716524", # Lena - 4794 tasks
 #   "1207668601734586", # Blogs - 919 tasks
 #   "1210990004350835", # All Clients - 402 tasks
 #   "1201997748599444", # Red Rock (VIP) - 578 tasks
 #   "1201944213595853", # 1st Impressions - 600 tasks
 #   "1204845884279023", # Hiner Outdoor Living (VIP) - 917 tasks
+# ]
+
+# PROJECT_GIDS = [
 #   "1201805737718436", # Teddy's (VIP) - 1045 tasks
 #   "1209670241247456", # Polina - 2882 tasks
 #   "1207599856837084", # Issue Tracker - 986 tasks
@@ -227,8 +229,6 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1209852258792933", # Giorgi - 536 tasks
 # ]
 
-
-
 # PROJECT_GIDS = [
 #   "1206082775373071", # Apple LandScape Design (VIP) - 402 tasks
 #   "1201955186274436", # Albert Pools (VIP) - 883 tasks
@@ -237,7 +237,6 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1204250043888413", # Valley Stone Supply - Unilock Dealer - 424 tasks
 #   "836807829489875", # Magic Landscaping (VIP) - 1311 tasks
 # ]
-
 
 # PROJECT_GIDS = [
 #   "1202103717323633", # Sammarco (VIP) - 691 tasks
@@ -277,7 +276,6 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1211002007747820", # WTX Outdoor Living (VIP) - 296 tasks
 #   "1204320149396735", # Allied Landscape Supply - 377 tasks
 #   "1201976495070655", # Unilock - 2333 tasks
-
 #   "1208574178647908", # BayTerra - 431 tasks
 # ]
 
@@ -355,6 +353,13 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1202017683965876", # JFD - 492 tasks
 #   "1201994574141537", # Proscapes - 676 tasks
 #   "1202103765718385", # Rine - 722 tasks
+# ]
+
+# PROJECT_GIDS = [
+# "1207722511334892", # Lauren - 7412 tasks
+# "1207931717530299", # Matej - 5681 tasks
+#   "1207401689716524", # Lena - 4794 tasks
+
 # ]
 
 
