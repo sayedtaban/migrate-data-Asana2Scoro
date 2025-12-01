@@ -808,6 +808,7 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                         # Note: Company is usually set at project level, but can be overridden at task level
                         # First, try to use the company ID from the project (avoids re-searching with pagination issues)
                         company_name = task_data.get('company_name')
+                        logging.info(f"Company name is {company_name} and looking for it")
                         if company_name:
                             # Check if the task's company matches the project's company
                             # If so, reuse the project_company_id to avoid re-searching (which has pagination limits)
@@ -826,7 +827,15 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                                         else:
                                             logger.warning(f"    Company '{company_name}' found but no ID available")
                                     else:
-                                        logger.warning(f"    Could not find company '{company_name}' in Scoro companies")
+                                        new_company = scoro_client.get_or_create_company(company_name)
+                                        logger.warning(f"    Could not find company '{company_name}' in Scoro companies and created new company")
+                                        company_id = new_company.get('id') or new_company.get('company_id') or new_company.get('client_id') or new_company.get('contact_id')
+                                        logger.debug(f"new company is create: {company_id}")
+                                        if company_id:
+                                            task_data['company_id'] = company_id
+                                            logger.debug(f"    Resolved company '{company_name}' to company_id: {company_id}")
+                                        else:
+                                            logger.warning(f"    Company '{company_name}' found but no ID available")
                                 except Exception as e:
                                     logger.warning(f"    Error resolving company '{company_name}': {e}")
                         

@@ -72,19 +72,21 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
         # For client projects, use project name as company name
         # For team member projects, try to extract from tasks' custom fields
         company_name = None
-        if is_client:
-            # Client projects: use project name as company name
+        company_list = []
+        
+        tasks = asana_data.get('tasks', [])
+        for task in tasks:  # Check first 10 tasks
+            company_from_task = extract_custom_field_value(task, 'C-Name') or extract_custom_field_value(task, 'Company Name')
+            company_list.append(company_from_task)
+            
+        if len(company_list) == 1:
+            company_name = company_list[0]
+            logger.info(f"  Found company name from task custom field: {company_name}")
+
+        else: 
             company_name = project_name
-        else:
-            # For team member projects, try to extract company from tasks' custom fields
-            # Check first few tasks for company information
-            tasks = asana_data.get('tasks', [])
-            for task in tasks[:10]:  # Check first 10 tasks
-                company_from_task = extract_custom_field_value(task, 'C-Name') or extract_custom_field_value(task, 'Company Name')
-                if company_from_task:
-                    company_name = company_from_task
-                    logger.info(f"  Found company name from task custom field: {company_name}")
-                    break
+            logger.info(f"  Company name is set as a project name!")
+            
         
         # Extract Project Manager from "PM Name" custom field in tasks
         # Priority: Find custom field with name "PM Name" and use its display_value (first name)
@@ -829,10 +831,14 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             # Comments will be created separately via Scoro Comments API
             stories = task.get('stories', [])
             
+            company = None
             # Get company name (from custom field or project)
             company = extract_custom_field_value(task, 'C-Name') or extract_custom_field_value(task, 'Company Name')
-            if not company:
-                company = project_name
+            if company is not None:
+                logger.info(f"Task's company name is {company}")
+                
+            else:
+                logger.info(f"Task Related Company ID: None")
             
             # Extract tags
             tags = extract_tags(task)
