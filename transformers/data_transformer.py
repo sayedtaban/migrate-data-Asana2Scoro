@@ -75,7 +75,7 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
         company_list = []
         
         tasks = asana_data.get('tasks', [])
-        for task in tasks:  # Check first 10 tasks
+        for task in tasks:  # Check all tasks
             company_from_task = extract_custom_field_value(task, 'C-Name') or extract_custom_field_value(task, 'Company Name')
             company_list.append(company_from_task)
             

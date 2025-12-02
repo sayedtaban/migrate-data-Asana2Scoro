@@ -419,12 +419,12 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1202017683965876", # JFD - 492 tasks
 # ]
 
-PROJECT_GIDS = [
-  "1206838003174635", # PureModern - 1098 tasks
-  "1201994599417224", # ARJ - 493 tasks
-  "1205326220124712", # Kennedy Blue Mountain Stone - 219 tasks
-  "1209020289079877", # Exscape (VIP) - 554 tasks
-]
+# PROJECT_GIDS = [
+#   "1206838003174635", # PureModern - 1098 tasks
+#   "1201994599417224", # ARJ - 493 tasks
+#   "1205326220124712", # Kennedy Blue Mountain Stone - 219 tasks
+#   "1209020289079877", # Exscape (VIP) - 554 tasks
+# ]
 
 
 # PROJECT_GIDS = [
@@ -435,36 +435,51 @@ PROJECT_GIDS = [
 #   "1203848537002834", # C&S Landscaping - 299 tasks
 # ]
 
-# PROJECT_GIDS = [
-#   "1209670241247456", # Polina - 2882 tasks
-#   "1201976495070655", # Unilock - 2333 tasks
-# ]
+
 # =================================================12/4================================================== #
-
-#   "1200858667852392", # [H] Client MPP - 1014 tasks
-#   "1209324707997813", # 2025 Client Template - 345 tasks
-
-# PROJECT_GIDS = [
-#   "1207722511334892", # Lauren - 7412 tasks
-# ]
 
 # PROJECT_GIDS = [
 #   "1207931717530263", # Alejandra - 1008 tasks
 #   "1207743544295787", # Ginny - 647 tasks
+#   "1200858667852392", # [H] Client MPP - 1014 tasks
+#   "1209324707997813", # 2025 Client Template - 345 tasks
+# ]
+
+# PROJECT_GIDS = [
+#   "1201994699804530", # Antonucci - 592 tasks
+#   "1206594099564496", # Kamin - 230 tasks
+#   "1202103718886449", # Zacarias - 402 tasks
+#   "1209980831176849", # Mylessia Training - 801 tasks
+# ]
+
+# PROJECT_GIDS = [
+#   "1205797057778863", # King GREEN - 1121 tasks
 # ]
 
 # PROJECT_GIDS = [
 #   "1207401689716524", # Lena - 4794 tasks
 # ]
+
+# PROJECT_GIDS = [
 #   "1208246397156176", # Client Status - 4158 tasks
-#   "1201994699804530", # Antonucci - 592 tasks
-#   "1206594099564496", # Kamin - 230 tasks
-#   "1202103718886449", # Zacarias - 402 tasks
-#   "1209980831176849", # Mylessia Training - 801 tasks
-#   "1205797057778863", # King GREEN - 1121 tasks
+# ]
+
+
+# PROJECT_GIDS = [
+#   "1209670241247456", # Polina - 2882 tasks
+# ]
+
+PROJECT_GIDS = [
+  "1201976495070655", # Unilock - 2333 tasks
+]
+
 
 # PROJECT_GIDS = [
 #   "1201668388055244", # Halstead Media Clients - 50001 tasks
+# ]
+
+# PROJECT_GIDS = [
+#   "1207722511334892", # Lauren - 7412 tasks
 # ]
 
 Backup_Scoro_Project_ID = [
@@ -477,6 +492,8 @@ PROJECT_NAMES = [
     # "Another Project Name",  # Example project 2
     # Add more project names here
 ]
+
+
 
 # Workspace GID (required for Asana API)
 WORKSPACE_GID = "10447183158961"
