@@ -808,7 +808,6 @@ def import_to_scoro(scoro_client: ScoroClient, transformed_data: Dict, summary: 
                         # Note: Company is usually set at project level, but can be overridden at task level
                         # First, try to use the company ID from the project (avoids re-searching with pagination issues)
                         company_name = task_data.get('company_name')
-                        logger.info(f"Company name is {company_name} and looking for it")
                         if company_name:
                             # Check if the task's company matches the project's company
                             # If so, reuse the project_company_id to avoid re-searching (which has pagination limits)

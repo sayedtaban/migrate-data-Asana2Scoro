@@ -77,12 +77,13 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
         tasks = asana_data.get('tasks', [])
         for task in tasks:  # Check all tasks
             company_from_task = extract_custom_field_value(task, 'C-Name') or extract_custom_field_value(task, 'Company Name')
-            company_list.append(company_from_task)
+            if company_from_task:
+                company_list.append(company_from_task)
             
-        if len(company_list) == 1:
+        # If all tasks have the same company name, use it
+        if len(set(company_list)) == 1 and company_list:
             company_name = company_list[0]
             logger.info(f"  Found company name from task custom field: {company_name}")
-
         else: 
             company_name = project_name
             logger.info(f"  Company name is set as a project name!")
@@ -834,9 +835,11 @@ def transform_data(asana_data: Dict, summary: MigrationSummary, seen_tasks_track
             company = None
             # Get company name (from custom field or project)
             company = extract_custom_field_value(task, 'C-Name') or extract_custom_field_value(task, 'Company Name')
+            # Fallback to project-level company name if task doesn't have its own company
+            if not company:
+                company = company_name
             if company is not None:
                 logger.info(f"Task's company name is {company}")
-                
             else:
                 logger.info(f"Task Related Company ID: None")
             

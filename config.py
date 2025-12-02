@@ -132,7 +132,6 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 
 # PROJECT_GIDS = [
 #   "1207931717530407", # Olivia - 1685 tasks
-#   "1207448790384675", # Social Posting - 1562 tasks
 #   "1206525987654870", # Atlantic Ridge (VIP) - 747 tasks
 #   "1210873210287559", # Exscape Group - 184 tasks
 #   "1200670717859396", # [H] Billing Master - 70 tasks
@@ -179,18 +178,12 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # PROJECT_GIDS = [
 #   "1209563150341870", # Genesee Valley - 566 tasks
 #   "1208531721844593", # Martina - 1395 tasks
-#   "1180237628314967", # Platinum - 18 tasks
 #   "1199187158790731", # MyFence2Go - SEO - 58 tasks
 #   "888334325526069", # LandArt/FireSky- Website - 37 tasks
 #   "1210478192678626", # Paramount Outdoor Living - 195 tasks
 #   "1209391947899381", # MAB Landscaping - 192 tasks
-#   "1206595171320647", # Roche - 6 tasks
 #   "1211792420870735", # PM Time Tracking by Client - 4 tasks
 #   "1208873745193724", # Hi-Way Concrete - 82 tasks
-# ]
-
-# PROJECT_GIDS = [
-#   "1209755485393570", # Review Draft Responses (Mark complete when sent to client and posted on review platform) - 2351 tasks
 # ]
 
 
@@ -227,7 +220,6 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # ]
 
 # PROJECT_GIDS = [
-#   "1207522975026447", # Email Marketing - 505 tasks
 #   "1206355124124877", # Flora Landscape Contractors - 497 tasks
 #   "1209852258792933", # Giorgi - 536 tasks
 #   "1207668601734586", # Blogs - 919 tasks
@@ -321,14 +313,11 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # PROJECT_GIDS = [
 #   "1202103810014649", # Santucci - 261 tasks
 #   "1209582867880756", # 🚨Riverview Landscapes🚨 (VIP) - 482 tasks
-#   "1211796317554229", # Tom Test Project for Kelsey - 322 tasks
 #   "715809873266920", # Misc for clients - 570 tasks
 #   "1207931717530299", # Matej - 5681 tasks
 # ]
 
-# PROJECT_GIDS = [
-#   "1211495866167897", # Tom's Test Project - 299 tasks
-# ]
+
 
 # PROJECT_GIDS = [
 #   "1210130088736420", # Southern Classic Landscape Management Inc - 293 tasks
@@ -361,7 +350,6 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 # ]
 
 # PROJECT_GIDS = [
-#   "1210962441602410", # SEO Dashboard - 482 tasks
 #   "1204820764302059", # SEO - 228 tasks
 # ]
   
@@ -469,9 +457,14 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console output
 #   "1209670241247456", # Polina - 2882 tasks
 # ]
 
-PROJECT_GIDS = [
-  "1201976495070655", # Unilock - 2333 tasks
-]
+# PROJECT_GIDS = [
+#   "1201976495070655", # Unilock - 2333 tasks
+# ]
+
+
+# PROJECT_GIDS = [
+#   "1209755485393570", # Review Draft Responses (Mark complete when sent to client and posted on review platform) - 2351 tasks
+# ]
 
 
 # PROJECT_GIDS = [
@@ -480,6 +473,17 @@ PROJECT_GIDS = [
 
 # PROJECT_GIDS = [
 #   "1207722511334892", # Lauren - 7412 tasks
+# ]
+
+
+# PROJECT_GIDS = [
+#   "1206595171320647", # Roche - 6 tasks
+#   "1180237628314967", # Platinum - 18 tasks
+#   "1211796317554229", # Tom Test Project for Kelsey - 322 tasks
+#   "1211495866167897", # Tom's Test Project - 299 tasks
+#   "1207522975026447", # Email Marketing - 505 tasks
+#   "1210962441602410", # SEO Dashboard - 482 tasks
+#   "1207448790384675", # Social Posting - 1562 tasks
 # ]
 
 Backup_Scoro_Project_ID = [
